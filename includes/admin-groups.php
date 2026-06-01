@@ -189,8 +189,8 @@ function pmprogroupacct_admin_groups_handle_post() {
 	}
 
 	$settings = $parent_level_id ? pmprogroupacct_get_settings_for_level( $parent_level_id ) : null;
-	if ( empty( $settings ) || empty( $settings['child_level_ids'] ) ) {
-		$errors[] = __( 'Please choose a parent level that is configured for group accounts.', 'pmpro-group-accounts' );
+	if ( ! pmprogroupacct_level_is_multi_child_parent( $parent_level_id ) ) {
+		$errors[] = __( 'Please choose a parent level that is configured for multi-child memberships.', 'pmpro-group-accounts' );
 	}
 
 	if ( empty( $errors ) && ! pmpro_hasMembershipLevel( $parent_level_id, $parent_user->ID ) ) {

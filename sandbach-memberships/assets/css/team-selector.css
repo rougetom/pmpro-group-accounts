@@ -1,0 +1,20 @@
+.sandbach-team-selector-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem;
+}
+
+.sandbach-team-selector-field {
+	flex: 1 1 180px;
+	min-width: 180px;
+}
+
+.sandbach-team-selector-label {
+	display: block;
+	margin-bottom: 0.35rem;
+	font-weight: 600;
+}
+
+.sandbach-team-selector select {
+	width: 100%;
+}

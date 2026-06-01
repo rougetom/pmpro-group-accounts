@@ -1,87 +1,253 @@
 <?php
 /**
- * Get the group account settings for a membership level.
+ * Group account helper functions.
  *
  * @since 1.0
- *
- * @param int $level_id The ID of the membership level to get the settings for.
- * @return array|null The group account settings for the membership level or null if there are none.
  */
+
 function pmprogroupacct_get_settings_for_level( $level_id ) {
-	// Check if the PMPro plugin is active.
 	if ( ! function_exists( 'get_pmpro_membership_level_meta' ) ) {
 		return null;
 	}
 
-	// Get the group account settings for the level.
 	$settings = get_pmpro_membership_level_meta( $level_id, 'pmprogroupacct_settings', true );
 
 	return empty( $settings ) ? null : $settings;
 }
 
-/**
- * Check if a level can be claimed using group codes.
- *
- * @since 1.0
- *
- * @param int $level_id The ID of the membership level to check.
- * @return bool True if the level can be claimed using group codes, false otherwise.
- */
-function pmprogroupacct_level_can_be_claimed_using_group_codes( $level_id ) {
-	static $all_settings = null;
+function pmprogroupacct_get_default_settings() {
+	return array(
+		'multi_child_enabled' => false,
+		'min_children'        => 1,
+		'max_children'        => 5,
+		'pricing_tiers'       => array(
+			1 => 0,
+			2 => 0,
+			3 => 0,
+		),
+		'price_application'   => 'initial',
+	);
+}
 
-	// Make sure that $level_id is an integer.
-	$level_id = intval( $level_id );
-
-	if ( null === $all_settings ) {
-		global $wpdb;
-		// Get all `pmprogroupacct_settings` metadata for all levels.
-		$all_settings = $wpdb->get_col(
-			$wpdb->prepare(
-				"SELECT meta_value FROM $wpdb->pmpro_membership_levelmeta WHERE meta_key = %s",
-				'pmprogroupacct_settings'
-			)
-		);
+function pmprogroupacct_normalize_settings( $settings ) {
+	$defaults = pmprogroupacct_get_default_settings();
+	if ( empty( $settings ) || ! is_array( $settings ) ) {
+		return $defaults;
 	}
 
-	// Check if any of the settings have $level_id in their `child_level_ids` array.
-	foreach ( $all_settings as $setting ) {
-		$setting = maybe_unserialize( $setting );
-		if ( ! empty( $setting['child_level_ids'] ) && in_array( $level_id, $setting['child_level_ids'], true ) ) {
-			return true;
+	$settings = array_merge( $defaults, $settings );
+
+	if ( empty( $settings['pricing_tiers'] ) || ! is_array( $settings['pricing_tiers'] ) ) {
+		$settings['pricing_tiers'] = $defaults['pricing_tiers'];
+	}
+
+	$settings['pricing_tiers'] = array_map( 'floatval', $settings['pricing_tiers'] );
+
+	return $settings;
+}
+
+function pmprogroupacct_level_is_multi_child_parent( $level_id ) {
+	$settings = pmprogroupacct_get_settings_for_level( $level_id );
+	$settings = pmprogroupacct_normalize_settings( $settings );
+
+	return ! empty( $settings['multi_child_enabled'] );
+}
+
+function pmprogroupacct_calculate_child_total( $settings, $child_count, $level_base_price = 0 ) {
+	$settings    = pmprogroupacct_normalize_settings( $settings );
+	$child_count = max( 0, (int) $child_count );
+	$breakdown   = array();
+	$total       = 0;
+
+	for ( $i = 1; $i <= $child_count; $i++ ) {
+		if ( 1 === $i ) {
+			$price = ! empty( $settings['pricing_tiers'][1] ) ? (float) $settings['pricing_tiers'][1] : (float) $level_base_price;
+		} elseif ( isset( $settings['pricing_tiers'][ $i ] ) && $settings['pricing_tiers'][ $i ] > 0 ) {
+			$price = (float) $settings['pricing_tiers'][ $i ];
+		} else {
+			$tier_keys = array_keys( $settings['pricing_tiers'] );
+			$last_tier = ! empty( $tier_keys ) ? max( $tier_keys ) : 2;
+			$price     = isset( $settings['pricing_tiers'][ $last_tier ] ) ? (float) $settings['pricing_tiers'][ $last_tier ] : 0;
 		}
+
+		$breakdown[ $i ] = $price;
+		$total          += $price;
 	}
+
+	return array(
+		'total'     => $total,
+		'average'   => $child_count > 0 ? $total / $child_count : 0,
+		'breakdown' => $breakdown,
+	);
+}
+
+function pmprogroupacct_apply_child_pricing_to_level( $level, $settings, $child_count ) {
+	$initial_pricing   = pmprogroupacct_calculate_child_total( $settings, $child_count, (float) $level->initial_payment );
+	$recurring_pricing = pmprogroupacct_calculate_child_total( $settings, $child_count, (float) $level->billing_amount );
+
+	switch ( $settings['price_application'] ) {
+		case 'both':
+			$level->initial_payment = $initial_pricing['total'];
+			$level->billing_amount  = $recurring_pricing['total'];
+			if ( empty( $level->cycle_number ) ) {
+				$level->cycle_number = 1;
+			}
+			if ( empty( $level->cycle_period ) ) {
+				$level->cycle_period = 'Month';
+			}
+			break;
+		case 'recurring':
+			$level->billing_amount = $recurring_pricing['total'];
+			if ( empty( $level->cycle_number ) ) {
+				$level->cycle_number = 1;
+			}
+			if ( empty( $level->cycle_period ) ) {
+				$level->cycle_period = 'Month';
+			}
+			break;
+		case 'initial':
+		default:
+			$level->initial_payment = $initial_pricing['total'];
+			break;
+	}
+
+	return $level;
+}
+
+function pmprogroupacct_get_team_display( $team_post_id ) {
+	$display = array(
+		'team'     => '',
+		'category' => '',
+		'level'    => '',
+	);
+
+	$team_post_id = (int) $team_post_id;
+	if ( $team_post_id <= 0 ) {
+		return $display;
+	}
+
+	$post = get_post( $team_post_id );
+	if ( empty( $post ) || 'team' !== $post->post_type ) {
+		return $display;
+	}
+
+	$display['team'] = $post->post_title;
+
+	$categories = get_the_terms( $team_post_id, 'team_category' );
+	if ( ! empty( $categories ) && ! is_wp_error( $categories ) ) {
+		$display['category'] = $categories[0]->name;
+	}
+
+	$levels = get_the_terms( $team_post_id, 'team_level' );
+	if ( ! empty( $levels ) && ! is_wp_error( $levels ) ) {
+		$display['level'] = $levels[0]->name;
+	}
+
+	return $display;
+}
+
+function pmprogroupacct_validate_team_post_id( $team_post_id ) {
+	if ( function_exists( 'sandbach_memberships_validate_team_post_id' ) ) {
+		return sandbach_memberships_validate_team_post_id( $team_post_id );
+	}
+
+	$team_post_id = (int) $team_post_id;
+	if ( $team_post_id <= 0 ) {
+		return false;
+	}
+
+	$post = get_post( $team_post_id );
+	return ! empty( $post ) && 'team' === $post->post_type && 'publish' === $post->post_status;
+}
+
+function pmprogroupacct_parse_child_profile_from_request( $prefix ) {
+	if ( ! isset( $_REQUEST['pmprogroupacct_children'] ) || ! is_array( $_REQUEST['pmprogroupacct_children'] ) ) {
+		return null;
+	}
+
+	$index = str_replace( array( 'pmprogroupacct_children[', ']' ), '', $prefix );
+	if ( ! isset( $_REQUEST['pmprogroupacct_children'][ $index ] ) ) {
+		return null;
+	}
+
+	$data = wp_unslash( $_REQUEST['pmprogroupacct_children'][ $index ] );
+
+	return array(
+		'first_name'      => sanitize_text_field( $data['first_name'] ?? '' ),
+		'last_name'       => sanitize_text_field( $data['last_name'] ?? '' ),
+		'date_of_birth'   => sanitize_text_field( $data['date_of_birth'] ?? '' ),
+		'gender'          => sanitize_text_field( $data['gender'] ?? '' ),
+		'emergency_phone' => sanitize_text_field( $data['emergency_phone'] ?? '' ),
+		'team_post_id'    => intval( $data['team_post_id'] ?? 0 ),
+		'child_order'     => intval( $data['child_order'] ?? ( (int) $index + 1 ) ),
+	);
+}
+
+function pmprogroupacct_render_child_fields( $index, $profile = array(), $show_heading = true ) {
+	$defaults = array(
+		'first_name'      => '',
+		'last_name'       => '',
+		'date_of_birth'   => '',
+		'gender'          => '',
+		'emergency_phone' => '',
+		'team_post_id'    => 0,
+	);
+	$profile = wp_parse_args( $profile, $defaults );
+	$prefix  = 'pmprogroupacct_children[' . (int) $index . ']';
+	?>
+	<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmprogroupacct_child_fields' ) ); ?>" data-child-index="<?php echo esc_attr( (int) $index ); ?>">
+		<?php if ( $show_heading ) : ?>
+			<h3 class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_font-large' ) ); ?>">
+				<?php printf( esc_html__( 'Child %d', 'pmpro-group-accounts' ), (int) $index + 1 ); ?>
+			</h3>
+		<?php endif; ?>
+		<input type="hidden" name="<?php echo esc_attr( $prefix ); ?>[child_order]" value="<?php echo esc_attr( (int) $index + 1 ); ?>" />
+		<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_fields' ) ); ?>">
+			<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field' ) ); ?>">
+				<label class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>" for="<?php echo esc_attr( $prefix ); ?>_first_name"><?php esc_html_e( 'First Name', 'pmpro-group-accounts' ); ?></label>
+				<input class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_input' ) ); ?>" type="text" id="<?php echo esc_attr( $prefix ); ?>_first_name" name="<?php echo esc_attr( $prefix ); ?>[first_name]" value="<?php echo esc_attr( $profile['first_name'] ); ?>" required />
+			</div>
+			<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field' ) ); ?>">
+				<label class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>" for="<?php echo esc_attr( $prefix ); ?>_last_name"><?php esc_html_e( 'Last Name', 'pmpro-group-accounts' ); ?></label>
+				<input class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_input' ) ); ?>" type="text" id="<?php echo esc_attr( $prefix ); ?>_last_name" name="<?php echo esc_attr( $prefix ); ?>[last_name]" value="<?php echo esc_attr( $profile['last_name'] ); ?>" required />
+			</div>
+			<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field' ) ); ?>">
+				<label class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>" for="<?php echo esc_attr( $prefix ); ?>_date_of_birth"><?php esc_html_e( 'Date of Birth', 'pmpro-group-accounts' ); ?></label>
+				<input class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_input' ) ); ?>" type="date" id="<?php echo esc_attr( $prefix ); ?>_date_of_birth" name="<?php echo esc_attr( $prefix ); ?>[date_of_birth]" value="<?php echo esc_attr( $profile['date_of_birth'] ); ?>" />
+			</div>
+			<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field' ) ); ?>">
+				<label class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>" for="<?php echo esc_attr( $prefix ); ?>_gender"><?php esc_html_e( 'Gender', 'pmpro-group-accounts' ); ?></label>
+				<input class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_input' ) ); ?>" type="text" id="<?php echo esc_attr( $prefix ); ?>_gender" name="<?php echo esc_attr( $prefix ); ?>[gender]" value="<?php echo esc_attr( $profile['gender'] ); ?>" />
+			</div>
+			<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field' ) ); ?>">
+				<label class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>" for="<?php echo esc_attr( $prefix ); ?>_emergency_phone"><?php esc_html_e( 'Emergency Contact Phone', 'pmpro-group-accounts' ); ?></label>
+				<input class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_input' ) ); ?>" type="tel" id="<?php echo esc_attr( $prefix ); ?>_emergency_phone" name="<?php echo esc_attr( $prefix ); ?>[emergency_phone]" value="<?php echo esc_attr( $profile['emergency_phone'] ); ?>" />
+			</div>
+			<?php do_action( 'pmprogroupacct_child_fields', $prefix, (int) $profile['team_post_id'] ); ?>
+		</div>
+	</div>
+	<?php
+}
+
+function pmprogroupacct_level_can_be_claimed_using_group_codes( $level_id ) {
 	return false;
 }
 
-/**
- * Get the url for a user's edit member or edit user page.
- *
- * @since 1.0.1
- *
- * @param WP_User $user The user object to get the edit URL for.
- * @return string The URL for the user's edit page.
- */
 function pmprogroupacct_member_edit_url_for_user( $user ) {
-	// Build the parent user link.
 	if ( function_exists( 'pmpro_member_edit_get_panels' ) ) {
-		$member_edit_url = add_query_arg( array( 'page' => 'pmpro-member', 'user_id' => $user->ID, 'pmpro_member_edit_panel' => 'group-accounts' ), admin_url( 'admin.php' ) );
-	} else {
-		$member_edit_url = add_query_arg( 'user_id', $user->ID, admin_url( 'user-edit.php' ) );
+		return add_query_arg(
+			array(
+				'page'                    => 'pmpro-member',
+				'user_id'                 => $user->ID,
+				'pmpro_member_edit_panel' => 'group-accounts',
+			),
+			admin_url( 'admin.php' )
+		);
 	}
-	// Return the parent user edit URL.
-	return $member_edit_url;
+
+	return add_query_arg( 'user_id', $user->ID, admin_url( 'user-edit.php' ) );
 }
 
-/**
- * Build a URL to the Group Accounts admin page, optionally with query args
- * for action / parent_user_id / parent_level_id prefill.
- *
- * @since 1.6
- *
- * @param array $args Optional query args to append.
- * @return string
- */
 function pmprogroupacct_admin_groups_url( $args = array() ) {
 	return add_query_arg(
 		array_merge( array( 'page' => 'pmpro-groupacct-groups' ), $args ),
@@ -89,27 +255,31 @@ function pmprogroupacct_admin_groups_url( $args = array() ) {
 	);
 }
 
-/**
- * Return the list of membership level objects that are configured as parent
- * levels for group accounts (i.e. their `pmprogroupacct_settings` has at least
- * one entry in `child_level_ids`).
- *
- * @since 1.6
- *
- * @return array Indexed array of level objects from pmpro_getAllLevels().
- */
 function pmprogroupacct_get_parent_eligible_levels() {
 	if ( ! function_exists( 'pmpro_getAllLevels' ) ) {
 		return array();
 	}
 
-	$all_levels   = pmpro_getAllLevels( true, true );
+	$all_levels    = pmpro_getAllLevels( true, true );
 	$parent_levels = array();
 	foreach ( $all_levels as $level ) {
-		$settings = pmprogroupacct_get_settings_for_level( $level->id );
-		if ( ! empty( $settings ) && ! empty( $settings['child_level_ids'] ) ) {
+		if ( pmprogroupacct_level_is_multi_child_parent( $level->id ) ) {
 			$parent_levels[] = $level;
 		}
 	}
 	return $parent_levels;
+}
+
+function pmprogroupacct_get_requested_child_count( $settings ) {
+	$settings = pmprogroupacct_normalize_settings( $settings );
+
+	if ( isset( $_REQUEST['pmprogroupacct_children_count'] ) ) {
+		$count = intval( $_REQUEST['pmprogroupacct_children_count'] );
+	} elseif ( isset( $_REQUEST['pmprogroupacct_seats'] ) ) {
+		$count = intval( $_REQUEST['pmprogroupacct_seats'] );
+	} else {
+		$count = (int) $settings['min_children'];
+	}
+
+	return max( (int) $settings['min_children'], min( (int) $settings['max_children'], $count ) );
 }

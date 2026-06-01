@@ -234,31 +234,28 @@ add_action( 'pmpro_manage_orderlist_custom_column' , 'pmprogroupacct_manage_orde
  * @return array The columns for the Orders list CSV export.
  */
 function pmprogroupacct_orders_csv_extra_columns( $columns ) {
-	$columns['pmprogroupacct_code'] = 'pmprogroupacct_orders_csv_extra_columns_group_code';
-	$columns['pmprogroupacct_parent'] = 'pmprogroupacct_orders_csv_extra_columns_group_parent';
+	$columns['pmprogroupacct_children'] = 'pmprogroupacct_orders_csv_extra_columns_group_children';
+	$columns['pmprogroupacct_parent']   = 'pmprogroupacct_orders_csv_extra_columns_group_parent';
 	return $columns;
 }
 add_filter( 'pmpro_orders_csv_extra_columns', 'pmprogroupacct_orders_csv_extra_columns' );
 
-/**
- * Callback function to add the Group Code to the Orders CSV export.
- * 
- * @since 1.4
- *
- * @param MemberOrder $order The Paid Memberships Pro order object.
- * @return string The group code.
- */
-function pmprogroupacct_orders_csv_extra_columns_group_code( $order ) {
-	// Get the group ID for this order.
+function pmprogroupacct_orders_csv_extra_columns_group_children( $order ) {
 	$group_id = get_pmpro_membership_order_meta( $order->id, 'pmprogroupacct_group_id', true );
-
-	// If there is a group ID, get and return the group code.
-	if ( ! empty( $group_id ) ) {
-		$group = new PMProGroupAcct_Group( intval( $group_id ) );
-		return $group->group_checkout_code;
-	} else {
+	if ( empty( $group_id ) ) {
 		return '';
 	}
+
+	$group = new PMProGroupAcct_Group( intval( $group_id ) );
+	if ( empty( $group->id ) ) {
+		return '';
+	}
+
+	return sprintf(
+		'%s/%s',
+		$group->get_active_members( true ),
+		$group->group_total_seats
+	);
 }
 
 /**

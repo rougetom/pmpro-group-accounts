@@ -29,12 +29,11 @@ class PMProGroupAcct_Groups_List_Table extends WP_List_Table {
 	 */
 	public function get_columns() {
 		$columns = array(
-			'id'                  => __( 'Group ID', 'pmpro-group-accounts' ),
-			'parent_user'         => __( 'Parent Account', 'pmpro-group-accounts' ),
-			'parent_level'        => __( 'Parent Level', 'pmpro-group-accounts' ),
-			'group_checkout_code' => __( 'Group Code', 'pmpro-group-accounts' ),
-			'seats'               => __( 'Seats', 'pmpro-group-accounts' ),
-			'status'              => __( 'Status', 'pmpro-group-accounts' ),
+			'id'           => __( 'Group ID', 'pmpro-group-accounts' ),
+			'parent_user'  => __( 'Parent Account', 'pmpro-group-accounts' ),
+			'parent_level' => __( 'Parent Level', 'pmpro-group-accounts' ),
+			'seats'        => __( 'Children', 'pmpro-group-accounts' ),
+			'status'       => __( 'Status', 'pmpro-group-accounts' ),
 		);
 
 		/**

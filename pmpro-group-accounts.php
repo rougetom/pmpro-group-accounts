@@ -13,7 +13,7 @@
 define( 'PMPROGROUPACCT_BASE_FILE', __FILE__ );
 define( 'PMPROGROUPACCT_BASENAME', plugin_basename( __FILE__ ) );
 define( 'PMPROGROUPACCT_DIR', dirname( __FILE__ ) );
-define( 'PMPROGROUPACCT_VERSION', '1.6' );
+define( 'PMPROGROUPACCT_VERSION', '2.0.0' );
 
 include_once( PMPROGROUPACCT_DIR . '/classes/class-pmprogroupacct-group.php' );
 include_once( PMPROGROUPACCT_DIR . '/classes/class-pmprogroupacct-group-member.php' );

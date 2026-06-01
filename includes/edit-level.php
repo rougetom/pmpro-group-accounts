@@ -9,183 +9,139 @@
 function pmprogroupacct_pmpro_membership_level_before_content_settings( $level ) {
 	global $pmpro_currency_symbol;
 
-	$settings = array(
-		'child_level_ids'		 => array(),
-		'min_seats'				 => 0,
-		'max_seats'				 => 0,
-		'pricing_model'			 => 'none', // none, fixed
-		'pricing_model_settings' => 0,
-		'price_application'		 => 'initial', // initial, recurring, both
-	);
+	$settings = pmprogroupacct_normalize_settings( null );
 
-	// Are we copying a level?
 	if ( isset( $_REQUEST['copy'] ) ) {
 		$copy = intval( $_REQUEST['copy'] );
 	}
 
-	// Get the group account settings for the level.
 	if ( ! empty( $copy ) && $copy > 0 ) {
-		// If we're copying, get the group account settings from the copied level.
 		$saved_settings = pmprogroupacct_get_settings_for_level( $copy );
 	} else {
-		// Get the group account settings for the level being edited
 		$saved_settings = pmprogroupacct_get_settings_for_level( $level->id );
 	}
 
 	if ( ! empty( $saved_settings ) ) {
-		$settings = array_merge( $settings, $saved_settings );
-	}
-
-	// Get all membership levels.
-	$all_levels = pmpro_getAllLevels( true, true );
-
-	// Remove the current level from the list of levels.
-	unset( $all_levels[ $level->id ] );
-
-	// Build the settings UI.
-	if ( count( $all_levels ) === 0 ) {
-		$section_visibility = 'hidden';
-		$section_activated = 'false';
-	} else {
-		$section_visibility = 'shown';
-		$section_activated = 'true';
+		$settings = pmprogroupacct_normalize_settings( $saved_settings );
 	}
 	?>
-	<div id="pmpro-group-accounts" class="pmpro_section" data-visibility="<?php echo esc_attr( $section_visibility ); ?>" data-activated="<?php echo esc_attr( $section_activated ); ?>">
+	<div id="pmpro-group-accounts" class="pmpro_section" data-visibility="shown" data-activated="true">
 		<div class="pmpro_section_toggle">
-			<button class="pmpro_section-toggle-button" type="button" aria-expanded="<?php echo $section_visibility === 'hidden' ? 'false' : 'true'; ?>">
-				<span class="dashicons dashicons-arrow-<?php echo $section_visibility === 'hidden' ? 'down' : 'up'; ?>-alt2"></span>
-				<?php esc_html_e( 'Group Account Settings', 'pmpro-group-accounts' ); ?>
+			<button class="pmpro_section-toggle-button" type="button" aria-expanded="true">
+				<span class="dashicons dashicons-arrow-up-alt2"></span>
+				<?php esc_html_e( 'Multi-Child Membership Settings', 'pmpro-group-accounts' ); ?>
 			</button>
 		</div>
-		<div class="pmpro_section_inside" <?php echo $section_visibility === 'hidden' ? 'style="display: none"' : ''; ?>>
-			<p>
-				<?php esc_html_e( 'Group accounts allow a member to purchase a block of memberships at once. The member will receive a code to distribute to their group for use during registration.', 'pmpro-group-accounts' ); ?>
-				<a href="https://www.paidmembershipspro.com/add-ons/group-accounts?utm_source=plugin&utm_medium=pmpro-membershiplevels&utm_campaign=add-ons&utm_content=view-documentation" target="_blank"><?php esc_html_e( 'View documentation', 'pmpro-group-accounts' ); ?></a>
-			</p>
-			<?php
-				// If there is only one level, show a message and return.
-				if ( count( $all_levels ) === 0 ) {
-					?>
-					<div class="pmpro_message pmpro_alert">
-						<p>
-							<?php esc_html_e( 'You do not have any membership levels that can be set as the child account for this group.', 'pmpro-group-accounts' ); ?>
-							<?php printf( __( 'Please <a target="_blank" href="%s">create an additional membership level</a> to use as the child account for this group.', 'pmpro-group-accounts' ), add_query_arg( array( 'page' => 'pmpro-membershiplevels' ), admin_url( 'admin.php' ) ) ); ?>
-						</p>
-					</div>
-					<?php
-				} else {
-					?>
-					<table class="form-table">
-						<tbody>
-							<tr>
-								<th scope="row" valign="top">
-									<label for="pmprogroupacct_child_level_ids"><?php esc_html_e( 'Membership Level(s)', 'pmpro-group-accounts' ); ?></label>
-								</th>
-								<td>
-									<select id="pmprogroupacct_child_level_ids" name="pmprogroupacct_child_level_ids[]" multiple="multiple">
-										<?php
-										// Show all levels except the current level in the dropdown
-										foreach ( $all_levels as $child_level ) { ?>
-											<option value="<?php echo esc_attr( $child_level->id ); ?>" <?php selected( in_array( $child_level->id, $settings['child_level_ids'] ) ); ?>><?php echo esc_html( $child_level->name ); ?></option>
-										<?php } ?>
-									</select>
-									<p class="description"><?php esc_html_e( 'Select one or more membership levels that can be claimed by group members. Leave blank if this membership level does not offer child accounts.', 'pmpro-group-accounts' ); ?></p>
-							</tr>
-							<tr class="pmprogroupacct_setting">
-								<th scope="row" valign="top">
-									<label for="pmprogroupacct_group_type"><?php esc_html_e( 'Type of Group', 'pmpro-group-accounts' ); ?></label>
-								</th>
-								<td>
-									<select id="pmprogroupacct_group_type" name="pmprogroupacct_group_type">
-										<option value="fixed" <?php selected( $settings['min_seats'] === $settings['max_seats'] ); ?>><?php esc_html_e( 'Fixed - Set a specific number of allowed seats.', 'pmpro-group-accounts' ); ?></option>
-										<option value="variable" <?php selected( $settings['min_seats'] !== $settings['max_seats'] ); ?>><?php esc_html_e( 'Variable - Member can choose number of seats at checkout.', 'pmpro-group-accounts' ); ?></option>
-									</select>
-									<p class="description"><?php esc_html_e( 'Set a specific number of seats in the group or allow the member to choose the number of seats they need at checkout.', 'pmpro-group-accounts' ); ?></p>
-								</td>
-							</tr>
-							<tr class="pmprogroupacct_setting pmprogroupacct_group_type_setting pmprogroupacct_group_type_setting_fixed">
-								<th scope="row" valign="top">
-									<label for="pmprogroupacct_total_seats"><?php esc_html_e( 'Total Seats', 'pmpro-group-accounts' ); ?></label>
-								</th>
-								<td>
-									<input id="pmprogroupacct_total_seats" name="pmprogroupacct_total_seats" type="number" min="0" max="4294967295" value="<?php echo esc_attr( $settings['min_seats'] ); ?>" />
-									<p class="description"><?php esc_html_e( 'The total number of seats that are included in this group. Note: the group account owner does not count toward this total.', 'pmpro-group-accounts' ); ?></p>
-								</td>
-							</tr>
-							<tr class="pmprogroupacct_setting pmprogroupacct_group_type_setting pmprogroupacct_group_type_setting_variable">
-								<th scope="row" valign="top">
-									<label for="pmprogroupacct_min_seats"><?php esc_html_e( 'Minimum Seats', 'pmpro-group-accounts' ); ?></label>
-								</th>
-								<td>
-									<input id="pmprogroupacct_min_seats" name="pmprogroupacct_min_seats" type="number" min="0" max="4294967295" value="<?php echo esc_attr( $settings['min_seats'] ); ?>" />
-									<p class="description"><?php esc_html_e( 'The minimum number of seats that can be added at checkout.', 'pmpro-group-accounts' ); ?></p>
-								</td>
-							</tr>
-							<tr class="pmprogroupacct_setting pmprogroupacct_group_type_setting pmprogroupacct_group_type_setting_variable">
-								<th scope="row" valign="top">
-									<label for="pmprogroupacct_max_seats"><?php esc_html_e( 'Maximum Seats', 'pmpro-group-accounts' ); ?></label>
-								</th>
-								<td>
-									<input id="pmprogroupacct_max_seats" name="pmprogroupacct_max_seats" type="number" min="0" max="4294967295" value="<?php echo esc_attr( $settings['max_seats'] ); ?>" />
-									<p class="description"><?php esc_html_e( 'The maximum number of seats that can be added at checkout. Note: the group account owner does not count toward this limit.', 'pmpro-group-accounts' ); ?></p>
-								</td>
-							</tr>
-							<tr class="pmprogroupacct_setting">
-								<th scope="row" valign="top">
-									<label for="pmprogroupacct_pricing_model"><?php esc_html_e( 'Pricing Model', 'pmpro-group-accounts' ); ?></label>
-								</th>
-								<td>
-									<select id="pmprogroupacct_pricing_model" name="pmprogroupacct_pricing_model">
-										<option value="none" <?php selected( 'none', $settings['pricing_model'] ); ?>><?php esc_html_e( 'None - Group pricing is built into this membership level.', 'pmpro-group-accounts' ); ?></option>
-										<option value="fixed" <?php selected( 'fixed', $settings['pricing_model'] ); ?>><?php esc_html_e( 'Per Seat - Set a specific price per additional seat.', 'pmpro-group-accounts' ); ?></option>
-									</select>
-									<p class="description"><?php esc_html_e( 'The pricing model to use for purchasing seats.', 'pmpro-group-accounts' ); ?></p>
-									<div id="pmprogroupacct_pricing_model_warning_free_level" style="display: none;" class="pmpro_message pmpro_alert">
-										<p><?php esc_html_e( 'WARNING: This level does not have any pricing set up. We highly recommend that you set up an initial payment or recurring billing for a better checkout experience.', 'pmpro-group-accounts' ); ?></p>
-									</div>
-								</td>
-							</tr>
-							<tr class="pmprogroupacct_setting pmprogroupacct_pricing_setting pmprogroupacct_pricing_setting_fixed">
-								<th scope="row" valign="top">
-									<label for="pmprogroupacct_pricing_model_settings"><?php esc_html_e( 'Cost Per Seat', 'pmpro-group-accounts' ); ?></label>
-								</th>
-								<td>
-									<?php
-									if ( pmpro_getCurrencyPosition() == "left" )
-										echo $pmpro_currency_symbol;
-									?>
-									<input name="pmprogroupacct_pricing_model_settings" type="text" value="<?php echo esc_attr( pmpro_filter_price_for_text_field( $settings['pricing_model_settings'] ) ); ?>" class="regular-text" />
-									<?php
-									if ( pmpro_getCurrencyPosition() == "right" )
-										echo $pmpro_currency_symbol;
-									?>
-									<p class="description"><?php esc_html_e( 'The additional cost at checkout per seat.', 'pmpro-group-accounts' ); ?></p>
-								</td>
-							</tr>
-							<tr class="pmprogroupacct_setting pmprogroupacct_pricing_setting pmprogroupacct_pricing_setting_paid">
-								<th scope="row" valign="top">
-									<label for="pmprogroupacct_price_application"><?php esc_html_e( 'Price Application', 'pmpro-group-accounts' ); ?></label>
-								</th>
-								<td>
-									<select id="pmprogroupacct_price_application" name="pmprogroupacct_price_application">
-										<option value="initial" <?php selected( 'initial', $settings['price_application'] ); ?>><?php esc_html_e( 'Initial payment only', 'pmpro-group-accounts' ); ?></option>
-										<option value="recurring" <?php selected( 'recurring', $settings['price_application'] ); ?>><?php esc_html_e( 'Recurring subscription only', 'pmpro-group-accounts' ); ?></option>
-										<option value="both" <?php selected( 'both', $settings['price_application'] ); ?>><?php esc_html_e( 'Initial payment and recurring subscription', 'pmpro-group-accounts' ); ?></option>
-									</select>
-									<p class="description"><?php esc_html_e( 'Define whether the seat cost should be applied for the initial payment, recurring payment, or both.', 'pmpro-group-accounts' ); ?></p>
-									<div id="pmprogroupacct_pricing_model_warning_recurring_billing" style="display: none;" class="pmpro_message pmpro_alert">
-										<p><?php esc_html_e( 'WARNING: This level does not have a recurring subscription. Child accounts will assume a monthly billing period unless you configure the subscription on this parent level.', 'pmpro-group-accounts' ); ?></p>
-									</div>
-								</td>
-							</tr>
-						</tbody>
-					</table>
-					<?php
-				}
-			?>
-		</div> <!-- end .pmpro_section_inside -->
-	</div> <!-- end .pmpro_section -->
+		<div class="pmpro_section_inside">
+			<p><?php esc_html_e( 'Allow members to register multiple children on one membership. The first child pays the membership level price; additional children use tiered pricing configured below.', 'pmpro-group-accounts' ); ?></p>
+			<table class="form-table">
+				<tbody>
+					<tr>
+						<th scope="row" valign="top">
+							<label for="pmprogroupacct_multi_child_enabled"><?php esc_html_e( 'Enable Multi-Child Membership', 'pmpro-group-accounts' ); ?></label>
+						</th>
+						<td>
+							<label for="pmprogroupacct_multi_child_enabled">
+								<input id="pmprogroupacct_multi_child_enabled" name="pmprogroupacct_multi_child_enabled" type="checkbox" value="1" <?php checked( ! empty( $settings['multi_child_enabled'] ) ); ?> />
+								<?php esc_html_e( 'This level supports multiple children on one membership.', 'pmpro-group-accounts' ); ?>
+							</label>
+						</td>
+					</tr>
+					<tr class="pmprogroupacct_setting">
+						<th scope="row" valign="top">
+							<label for="pmprogroupacct_group_type"><?php esc_html_e( 'Number of Children', 'pmpro-group-accounts' ); ?></label>
+						</th>
+						<td>
+							<select id="pmprogroupacct_group_type" name="pmprogroupacct_group_type">
+								<option value="fixed" <?php selected( $settings['min_children'] === $settings['max_children'] ); ?>><?php esc_html_e( 'Fixed - Set a specific number of children.', 'pmpro-group-accounts' ); ?></option>
+								<option value="variable" <?php selected( $settings['min_children'] !== $settings['max_children'] ); ?>><?php esc_html_e( 'Variable - Member chooses number of children at checkout.', 'pmpro-group-accounts' ); ?></option>
+							</select>
+						</td>
+					</tr>
+					<tr class="pmprogroupacct_setting pmprogroupacct_group_type_setting pmprogroupacct_group_type_setting_fixed">
+						<th scope="row" valign="top">
+							<label for="pmprogroupacct_total_children"><?php esc_html_e( 'Total Children', 'pmpro-group-accounts' ); ?></label>
+						</th>
+						<td>
+							<input id="pmprogroupacct_total_children" name="pmprogroupacct_total_children" type="number" min="1" max="4294967295" value="<?php echo esc_attr( max( 1, (int) $settings['min_children'] ) ); ?>" />
+						</td>
+					</tr>
+					<tr class="pmprogroupacct_setting pmprogroupacct_group_type_setting pmprogroupacct_group_type_setting_variable">
+						<th scope="row" valign="top">
+							<label for="pmprogroupacct_min_children"><?php esc_html_e( 'Minimum Children', 'pmpro-group-accounts' ); ?></label>
+						</th>
+						<td>
+							<input id="pmprogroupacct_min_children" name="pmprogroupacct_min_children" type="number" min="1" max="4294967295" value="<?php echo esc_attr( max( 1, (int) $settings['min_children'] ) ); ?>" />
+						</td>
+					</tr>
+					<tr class="pmprogroupacct_setting pmprogroupacct_group_type_setting pmprogroupacct_group_type_setting_variable">
+						<th scope="row" valign="top">
+							<label for="pmprogroupacct_max_children"><?php esc_html_e( 'Maximum Children', 'pmpro-group-accounts' ); ?></label>
+						</th>
+						<td>
+							<input id="pmprogroupacct_max_children" name="pmprogroupacct_max_children" type="number" min="1" max="4294967295" value="<?php echo esc_attr( max( 1, (int) $settings['max_children'] ) ); ?>" />
+						</td>
+					</tr>
+					<tr class="pmprogroupacct_setting">
+						<th scope="row" valign="top"><?php esc_html_e( 'Tiered Child Pricing', 'pmpro-group-accounts' ); ?></th>
+						<td>
+							<p class="description"><?php esc_html_e( 'Leave child 1 at 0 to use this membership level price. Set prices for additional children by position. The last tier applies to all subsequent children.', 'pmpro-group-accounts' ); ?></p>
+							<table class="widefat striped">
+								<thead>
+									<tr>
+										<th><?php esc_html_e( 'Child Position', 'pmpro-group-accounts' ); ?></th>
+										<th><?php esc_html_e( 'Price', 'pmpro-group-accounts' ); ?></th>
+									</tr>
+								</thead>
+								<tbody>
+									<?php for ( $tier = 1; $tier <= 5; $tier++ ) : ?>
+										<tr>
+											<td>
+												<?php
+												if ( 1 === $tier ) {
+													esc_html_e( '1st child (0 = level price)', 'pmpro-group-accounts' );
+												} elseif ( 5 === $tier ) {
+													esc_html_e( '5th child and beyond', 'pmpro-group-accounts' );
+												} else {
+													printf( esc_html__( '%d child', 'pmpro-group-accounts' ), $tier );
+												}
+												?>
+											</td>
+											<td>
+												<?php
+												if ( pmpro_getCurrencyPosition() === 'left' ) {
+													echo esc_html( $pmpro_currency_symbol );
+												}
+												?>
+												<input name="pmprogroupacct_pricing_tiers[<?php echo esc_attr( $tier ); ?>]" type="text" value="<?php echo esc_attr( pmpro_filter_price_for_text_field( $settings['pricing_tiers'][ $tier ] ?? 0 ) ); ?>" class="regular-text" />
+												<?php
+												if ( pmpro_getCurrencyPosition() === 'right' ) {
+													echo esc_html( $pmpro_currency_symbol );
+												}
+												?>
+											</td>
+										</tr>
+									<?php endfor; ?>
+								</tbody>
+							</table>
+						</td>
+					</tr>
+					<tr class="pmprogroupacct_setting">
+						<th scope="row" valign="top">
+							<label for="pmprogroupacct_price_application"><?php esc_html_e( 'Price Application', 'pmpro-group-accounts' ); ?></label>
+						</th>
+						<td>
+							<select id="pmprogroupacct_price_application" name="pmprogroupacct_price_application">
+								<option value="initial" <?php selected( 'initial', $settings['price_application'] ); ?>><?php esc_html_e( 'Initial payment only', 'pmpro-group-accounts' ); ?></option>
+								<option value="recurring" <?php selected( 'recurring', $settings['price_application'] ); ?>><?php esc_html_e( 'Recurring subscription only', 'pmpro-group-accounts' ); ?></option>
+								<option value="both" <?php selected( 'both', $settings['price_application'] ); ?>><?php esc_html_e( 'Initial payment and recurring subscription', 'pmpro-group-accounts' ); ?></option>
+							</select>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+	</div>
 	<?php
 }
 add_action( 'pmpro_membership_level_before_content_settings', 'pmprogroupacct_pmpro_membership_level_before_content_settings' );
@@ -198,50 +154,38 @@ add_action( 'pmpro_membership_level_before_content_settings', 'pmprogroupacct_pm
  * @param int $level_id The ID of the level being saved.
  */
 function pmprogroupacct_pmpro_save_membership_level( $level_id ) {
-	// Validate the passed data.
-	if ( empty( $_REQUEST['pmprogroupacct_child_level_ids'] ) ) {
-		// This is not a group account level. Clear any existing settings.
+	if ( empty( $_REQUEST['pmprogroupacct_multi_child_enabled'] ) ) {
 		delete_pmpro_membership_level_meta( $level_id, 'pmprogroupacct_settings' );
 		return;
 	}
 
-	// Get the group account settings for the level.
-	$settings = pmprogroupacct_get_settings_for_level( $level_id );
-	if ( empty( $settings ) ) {
-		$settings = array();
-	}
+	$settings = pmprogroupacct_get_default_settings();
+	$settings['multi_child_enabled'] = true;
 
-	// Update the group account settings for the level.
-	$settings['child_level_ids']		= array_map( 'intval', $_REQUEST['pmprogroupacct_child_level_ids'] );
-
-	// Set the total seats, min, and max based on group type and user selected values.
 	if ( ! empty( $_REQUEST['pmprogroupacct_group_type'] ) && $_REQUEST['pmprogroupacct_group_type'] === 'fixed' ) {
-		$settings['min_seats'] = intval( $_REQUEST['pmprogroupacct_total_seats'] );
-		$settings['max_seats'] = intval( $_REQUEST['pmprogroupacct_total_seats'] );
+		$total_children = max( 1, intval( $_REQUEST['pmprogroupacct_total_children'] ?? 1 ) );
+		$settings['min_children'] = $total_children;
+		$settings['max_children'] = $total_children;
 	} else {
-		$settings['min_seats'] = intval( $_REQUEST['pmprogroupacct_min_seats'] );
-		$settings['max_seats'] = intval( $_REQUEST['pmprogroupacct_max_seats'] );
+		$settings['min_children'] = max( 1, intval( $_REQUEST['pmprogroupacct_min_children'] ?? 1 ) );
+		$settings['max_children'] = max( $settings['min_children'], intval( $_REQUEST['pmprogroupacct_max_children'] ?? 5 ) );
 	}
 
-	// Settings for seat pricing and price application.
-	$settings['pricing_model']			= pmpro_sanitize_with_safelist( $_REQUEST['pmprogroupacct_pricing_model'], array( 'none', 'fixed' ) ) ? $_REQUEST['pmprogroupacct_pricing_model'] : 'none';
-	// Set the pricing model setting to 0 if the pricing model is none.
-	if ( $settings['pricing_model'] === 'none' ) {
-		$settings['pricing_model_settings']	= '0';
-	} else {
-		$settings['pricing_model_settings']	= sanitize_text_field( $_REQUEST['pmprogroupacct_pricing_model_settings'] );
+	$settings['pricing_tiers'] = array();
+	if ( ! empty( $_REQUEST['pmprogroupacct_pricing_tiers'] ) && is_array( $_REQUEST['pmprogroupacct_pricing_tiers'] ) ) {
+		foreach ( $_REQUEST['pmprogroupacct_pricing_tiers'] as $tier => $price ) {
+			$settings['pricing_tiers'][ (int) $tier ] = sanitize_text_field( $price );
+		}
 	}
-	$settings['price_application']		= pmpro_sanitize_with_safelist( $_REQUEST['pmprogroupacct_price_application'], array( 'both', 'initial', 'recurring' ) ) ? $_REQUEST['pmprogroupacct_price_application'] : 'both';
+
+	$settings['price_application'] = pmpro_sanitize_with_safelist( $_REQUEST['pmprogroupacct_price_application'] ?? 'initial', array( 'both', 'initial', 'recurring' ) ) ? $_REQUEST['pmprogroupacct_price_application'] : 'initial';
+
 	update_pmpro_membership_level_meta( $level_id, 'pmprogroupacct_settings', $settings );
 }
 add_action( 'pmpro_save_membership_level', 'pmprogroupacct_pmpro_save_membership_level' );
 
 /**
  * Delete group account settings when the level is deleted.
- *
- * @since 1.0
- *
- * @param int $level_id The ID of the level being deleted.
  */
 function pmprogroupacct_pmpro_delete_membership_level( $level_id ) {
 	delete_pmpro_membership_level_meta( $level_id, 'pmprogroupacct_settings' );
