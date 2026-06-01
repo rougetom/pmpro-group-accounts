@@ -1,0 +1,121 @@
+# PMPro Group Accounts CI + dev deploy
+#
+# Deploy uses SamKirkland/FTP-Deploy-Action (https://github.com/marketplace/actions/ftp-deploy).
+#
+# Automatic deploy (push only): add these repository secrets (Settings → Secrets and variables → Actions):
+#   deploy_host           — FTP server hostname (often ftp.example.com or your cPanel FTP host)
+#   deploy_user           — FTP username
+#   deploy_ssh_password   — FTP password (same secret name works; this is not SSH)
+#
+# Remote plugin paths (FTP-Deploy requires a trailing slash):
+#   public_html/wp-content/plugins/pmpro-group-accounts/
+#   public_html/wp-content/plugins/sandbach-memberships/
+#
+# The workflow uses FTPS (explicit TLS) on port 21 with security: loose for typical shared hosts.
+# For plain FTP or a custom port, edit this file (FTP-Deploy-Action `protocol` / `port` inputs).
+#
+# WP-CLI / activation over SSH is not run after FTP. Activate plugins on the server if needed.
+#
+# If deploy_host is unset (after prep checks), the FTP step is skipped (CI still runs).
+
+name: PMPro Group Accounts CI
+
+on:
+  push:
+    branches: [ main, master, dev, 'cursor/**' ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, intl
+          coverage: none
+
+      - name: PHP syntax check
+        run: |
+          find . -name '*.php' \
+            ! -path './.git/*' \
+            ! -path './build/*' \
+            -print0 | xargs -0 -n1 php -l
+
+      - name: Build plugin trees + zip
+        run: |
+          mkdir -p build
+
+          rm -rf build/pmpro-group-accounts
+          mkdir -p build/pmpro-group-accounts
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='build' \
+            --exclude='sandbach-memberships' \
+            --exclude='*.zip' \
+            ./ build/pmpro-group-accounts/
+
+          rm -rf build/sandbach-memberships
+          mkdir -p build/sandbach-memberships
+          rsync -a sandbach-memberships/ build/sandbach-memberships/
+
+          cd build && zip -qr ../pmpro-group-accounts.zip pmpro-group-accounts
+          cd build && zip -qr ../sandbach-memberships.zip sandbach-memberships
+
+      - name: Upload zip artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pmpro-group-accounts-plugins
+          path: |
+            pmpro-group-accounts.zip
+            sandbach-memberships.zip
+
+      - name: Prepare FTP deploy
+        id: ftpprep
+        env:
+          H: ${{ secrets.deploy_host }}
+          U: ${{ secrets.deploy_user }}
+          P: ${{ secrets.deploy_ssh_password }}
+        run: |
+          if [ "${{ github.event_name }}" != "push" ]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -z "$H" ] || [ -z "$U" ] || [ -z "$P" ]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=FTP deploy skipped::Set secrets deploy_host, deploy_user, and deploy_ssh_password."
+            exit 0
+          fi
+          echo "run=true" >> "$GITHUB_OUTPUT"
+
+      - name: FTP deploy pmpro-group-accounts to dev server
+        if: steps.ftpprep.outputs.run == 'true'
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.deploy_host }}
+          username: ${{ secrets.deploy_user }}
+          password: ${{ secrets.deploy_ssh_password }}
+          protocol: ftps
+          server-dir: public_html/wp-content/plugins/pmpro-group-accounts/
+          local-dir: ./build/pmpro-group-accounts/
+          security: loose
+          log-level: standard
+
+      - name: FTP deploy sandbach-memberships to dev server
+        if: steps.ftpprep.outputs.run == 'true'
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.deploy_host }}
+          username: ${{ secrets.deploy_user }}
+          password: ${{ secrets.deploy_ssh_password }}
+          protocol: ftps
+          server-dir: public_html/wp-content/plugins/sandbach-memberships/
+          local-dir: ./build/sandbach-memberships/
+          security: loose
+          log-level: standard
