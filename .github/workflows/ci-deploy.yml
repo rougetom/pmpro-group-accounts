@@ -43,7 +43,6 @@ jobs:
           find . -name '*.php' \
             ! -path './.git/*' \
             ! -path './build/*' \
-            ! -path './sandbach-memberships/*' \
             -print0 | xargs -0 -n1 php -l
 
       - name: Build plugin tree + zip
@@ -55,7 +54,6 @@ jobs:
             --exclude='.git' \
             --exclude='.github' \
             --exclude='build' \
-            --exclude='sandbach-memberships' \
             --exclude='*.zip' \
             ./ build/pmpro-group-accounts/
           cd build && zip -qr ../pmpro-group-accounts.zip pmpro-group-accounts
