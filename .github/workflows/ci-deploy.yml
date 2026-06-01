@@ -7,14 +7,12 @@
 #   deploy_user           — FTP username
 #   deploy_ssh_password   — FTP password (same secret name works; this is not SSH)
 #
-# Remote plugin paths (FTP-Deploy requires a trailing slash):
-#   public_html/wp-content/plugins/pmpro-group-accounts/
-#   public_html/wp-content/plugins/sandbach-memberships/
+# Remote plugin path is hard-coded to public_html/wp-content/plugins/pmpro-group-accounts/ (FTP-Deploy requires a trailing slash).
 #
 # The workflow uses FTPS (explicit TLS) on port 21 with security: loose for typical shared hosts.
 # For plain FTP or a custom port, edit this file (FTP-Deploy-Action `protocol` / `port` inputs).
 #
-# WP-CLI / activation over SSH is not run after FTP. Activate plugins on the server if needed.
+# WP-CLI / activation over SSH is not run after FTP. Activate the plugin on the server if needed.
 #
 # If deploy_host is unset (after prep checks), the FTP step is skipped (CI still runs).
 
@@ -45,12 +43,12 @@ jobs:
           find . -name '*.php' \
             ! -path './.git/*' \
             ! -path './build/*' \
+            ! -path './sandbach-memberships/*' \
             -print0 | xargs -0 -n1 php -l
 
-      - name: Build plugin trees + zip
+      - name: Build plugin tree + zip
         run: |
           mkdir -p build
-
           rm -rf build/pmpro-group-accounts
           mkdir -p build/pmpro-group-accounts
           rsync -a \
@@ -60,21 +58,13 @@ jobs:
             --exclude='sandbach-memberships' \
             --exclude='*.zip' \
             ./ build/pmpro-group-accounts/
-
-          rm -rf build/sandbach-memberships
-          mkdir -p build/sandbach-memberships
-          rsync -a sandbach-memberships/ build/sandbach-memberships/
-
           cd build && zip -qr ../pmpro-group-accounts.zip pmpro-group-accounts
-          cd build && zip -qr ../sandbach-memberships.zip sandbach-memberships
 
-      - name: Upload zip artifacts
+      - name: Upload zip artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pmpro-group-accounts-plugins
-          path: |
-            pmpro-group-accounts.zip
-            sandbach-memberships.zip
+          name: pmpro-group-accounts
+          path: pmpro-group-accounts.zip
 
       - name: Prepare FTP deploy
         id: ftpprep
@@ -94,7 +84,7 @@ jobs:
           fi
           echo "run=true" >> "$GITHUB_OUTPUT"
 
-      - name: FTP deploy pmpro-group-accounts to dev server
+      - name: FTP deploy plugin to dev server
         if: steps.ftpprep.outputs.run == 'true'
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
@@ -104,18 +94,5 @@ jobs:
           protocol: ftps
           server-dir: public_html/wp-content/plugins/pmpro-group-accounts/
           local-dir: ./build/pmpro-group-accounts/
-          security: loose
-          log-level: standard
-
-      - name: FTP deploy sandbach-memberships to dev server
-        if: steps.ftpprep.outputs.run == 'true'
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.deploy_host }}
-          username: ${{ secrets.deploy_user }}
-          password: ${{ secrets.deploy_ssh_password }}
-          protocol: ftps
-          server-dir: public_html/wp-content/plugins/sandbach-memberships/
-          local-dir: ./build/sandbach-memberships/
           security: loose
           log-level: standard
