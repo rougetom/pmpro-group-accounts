@@ -100,6 +100,16 @@ function pmprogroupacct_handle_manage_group_actions( $group, $is_admin ) {
 				'child_order'     => intval( $_REQUEST['pmprogroupacct_child']['child_order'] ?? 0 ),
 			);
 
+			$profile['custom_meta'] = pmprogroupacct_parse_child_custom_meta_from_request( 'pmprogroupacct_child', $is_admin ? 'admin' : 'manage', $is_admin );
+			$custom_validation = pmprogroupacct_validate_child_custom_meta( $profile['custom_meta'], $is_admin ? 'admin' : 'manage', $is_admin );
+			if ( is_wp_error( $custom_validation ) ) {
+				$messages[] = array( 'error', $custom_validation->get_error_message() );
+				$profile = null;
+			}
+
+			if ( empty( $profile ) ) {
+				// Validation failed above.
+			} else {
 			$member_id = intval( $_REQUEST['pmprogroupacct_member_id'] ?? 0 );
 			if ( $member_id > 0 ) {
 				$member = new PMProGroupAcct_Group_Member( $member_id );
@@ -122,6 +132,7 @@ function pmprogroupacct_handle_manage_group_actions( $group, $is_admin ) {
 				}
 			} else {
 				$messages[] = array( 'error', __( 'No available child slots on this membership.', 'pmpro-group-accounts' ) );
+			}
 			}
 		}
 	}
@@ -256,6 +267,9 @@ function pmprogroupacct_shortcode_manage_group() {
 										<th><?php echo esc_html( $category_tax ? $category_tax->labels->singular_name : __( 'Category', 'pmpro-group-accounts' ) ); ?></th>
 										<th><?php echo esc_html( $level_tax ? $level_tax->labels->singular_name : __( 'Level', 'pmpro-group-accounts' ) ); ?></th>
 										<th><?php echo esc_html( $team_post_object ? $team_post_object->labels->singular_name : __( 'Team', 'pmpro-group-accounts' ) ); ?></th>
+										<?php foreach ( pmprogroupacct_get_child_fields_for_context( $is_admin ? 'admin' : 'manage', $is_admin ) as $custom_field ) : ?>
+											<th><?php echo esc_html( $custom_field['label'] ); ?></th>
+										<?php endforeach; ?>
 										<th><?php esc_html_e( 'Actions', 'pmpro-group-accounts' ); ?></th>
 									</tr>
 								</thead>
@@ -271,6 +285,10 @@ function pmprogroupacct_shortcode_manage_group() {
 											<td><?php echo esc_html( $team_display['category'] ?: '—' ); ?></td>
 											<td><?php echo esc_html( $team_display['level'] ?: '—' ); ?></td>
 											<td><?php echo esc_html( $team_display['team'] ?: '—' ); ?></td>
+											<?php $child_custom_meta = $member->get_custom_meta(); ?>
+											<?php foreach ( pmprogroupacct_get_child_fields_for_context( $is_admin ? 'admin' : 'manage', $is_admin ) as $custom_field ) : ?>
+												<td><?php echo esc_html( pmprogroupacct_format_child_custom_meta_value( $custom_field['key'], $child_custom_meta[ $custom_field['key'] ] ?? '' ) ?: '—' ); ?></td>
+											<?php endforeach; ?>
 											<td>
 												<a href="<?php echo esc_url( add_query_arg( 'pmprogroupacct_edit_member_id', $member->id, pmprogroupacct_manage_group_page_url( $group->id ) ) ); ?>"><?php esc_html_e( 'Edit', 'pmpro-group-accounts' ); ?></a>
 											</td>
@@ -322,6 +340,7 @@ function pmprogroupacct_shortcode_manage_group() {
 								'gender'          => $edit_member->gender ?? '',
 								'emergency_phone' => $edit_member->emergency_phone ?? '',
 								'team_post_id'    => $edit_member->team_post_id ?? 0,
+								'custom_meta'     => ( $edit_member && ! empty( $edit_member->id ) ) ? $edit_member->get_custom_meta() : array(),
 							);
 							?>
 							<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_fields' ) ); ?>">

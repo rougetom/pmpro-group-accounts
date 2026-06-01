@@ -180,10 +180,11 @@ function pmprogroupacct_parse_child_profile_from_request( $prefix ) {
 		'emergency_phone' => sanitize_text_field( $data['emergency_phone'] ?? '' ),
 		'team_post_id'    => intval( $data['team_post_id'] ?? 0 ),
 		'child_order'     => intval( $data['child_order'] ?? ( (int) $index + 1 ) ),
+		'custom_meta'     => pmprogroupacct_parse_child_custom_meta_from_request( $index, 'checkout', false ),
 	);
 }
 
-function pmprogroupacct_render_child_fields( $index, $profile = array(), $show_heading = true ) {
+function pmprogroupacct_render_child_fields( $index, $profile = array(), $show_heading = true, $context = 'checkout', $is_admin = false ) {
 	$defaults = array(
 		'first_name'      => '',
 		'last_name'       => '',
@@ -191,6 +192,7 @@ function pmprogroupacct_render_child_fields( $index, $profile = array(), $show_h
 		'gender'          => '',
 		'emergency_phone' => '',
 		'team_post_id'    => 0,
+		'custom_meta'     => array(),
 	);
 	$profile = wp_parse_args( $profile, $defaults );
 	$prefix  = 'pmprogroupacct_children[' . (int) $index . ']';
@@ -223,7 +225,10 @@ function pmprogroupacct_render_child_fields( $index, $profile = array(), $show_h
 				<label class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>" for="<?php echo esc_attr( $prefix ); ?>_emergency_phone"><?php esc_html_e( 'Emergency Contact Phone', 'pmpro-group-accounts' ); ?></label>
 				<input class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_input' ) ); ?>" type="tel" id="<?php echo esc_attr( $prefix ); ?>_emergency_phone" name="<?php echo esc_attr( $prefix ); ?>[emergency_phone]" value="<?php echo esc_attr( $profile['emergency_phone'] ); ?>" />
 			</div>
-			<?php do_action( 'pmprogroupacct_child_fields', $prefix, (int) $profile['team_post_id'] ); ?>
+			<?php
+			pmprogroupacct_render_child_custom_fields( $prefix, $profile['custom_meta'], $context, $is_admin );
+			do_action( 'pmprogroupacct_child_fields', $prefix, (int) $profile['team_post_id'] );
+			?>
 		</div>
 	</div>
 	<?php

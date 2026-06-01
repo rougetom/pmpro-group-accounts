@@ -108,6 +108,9 @@ function pmprogroupacct_show_group_account_info( $user ) {
 						<th><?php echo esc_html( $category_tax ? $category_tax->labels->singular_name : __( 'Category', 'pmpro-group-accounts' ) ); ?></th>
 						<th><?php echo esc_html( $level_tax ? $level_tax->labels->singular_name : __( 'Level', 'pmpro-group-accounts' ) ); ?></th>
 						<th><?php echo esc_html( $team_object ? $team_object->labels->singular_name : __( 'Team', 'pmpro-group-accounts' ) ); ?></th>
+						<?php foreach ( pmprogroupacct_get_child_fields_for_context( 'admin', true ) as $custom_field ) : ?>
+							<th><?php echo esc_html( $custom_field['label'] ); ?></th>
+						<?php endforeach; ?>
 					</tr>
 				</thead>
 				<tbody>
@@ -119,6 +122,10 @@ function pmprogroupacct_show_group_account_info( $user ) {
 							<td><?php echo esc_html( $team_display['category'] ?: '—' ); ?></td>
 							<td><?php echo esc_html( $team_display['level'] ?: '—' ); ?></td>
 							<td><?php echo esc_html( $team_display['team'] ?: '—' ); ?></td>
+							<?php $child_custom_meta = $child->get_custom_meta(); ?>
+							<?php foreach ( pmprogroupacct_get_child_fields_for_context( 'admin', true ) as $custom_field ) : ?>
+								<td><?php echo esc_html( pmprogroupacct_format_child_custom_meta_value( $custom_field['key'], $child_custom_meta[ $custom_field['key'] ] ?? '' ) ?: '—' ); ?></td>
+							<?php endforeach; ?>
 						</tr>
 					<?php endforeach; ?>
 				</tbody>

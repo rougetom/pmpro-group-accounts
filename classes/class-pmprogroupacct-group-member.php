@@ -19,6 +19,7 @@ class PMProGroupAcct_Group_Member {
 	protected $emergency_phone;
 	protected $team_post_id;
 	protected $child_order;
+	protected $custom_meta;
 
 	public function __construct( $member_id ) {
 		global $wpdb;
@@ -45,6 +46,7 @@ class PMProGroupAcct_Group_Member {
 				$this->emergency_phone      = isset( $data->emergency_phone ) ? $data->emergency_phone : '';
 				$this->team_post_id         = isset( $data->team_post_id ) ? (int) $data->team_post_id : 0;
 				$this->child_order          = isset( $data->child_order ) ? (int) $data->child_order : 0;
+				$this->custom_meta           = isset( $data->custom_meta ) ? $data->custom_meta : '';
 			}
 		}
 	}
@@ -219,8 +221,9 @@ class PMProGroupAcct_Group_Member {
 				'emergency_phone'      => $profile['emergency_phone'],
 				'team_post_id'         => (int) $profile['team_post_id'],
 				'child_order'          => (int) $profile['child_order'],
+				'custom_meta'          => pmprogroupacct_encode_child_custom_meta( $profile['custom_meta'] ?? array() ),
 			),
-			array( '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d' )
+			array( '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s' )
 		);
 
 		if ( empty( $wpdb->insert_id ) ) {
@@ -258,6 +261,7 @@ class PMProGroupAcct_Group_Member {
 		$this->emergency_phone = $profile['emergency_phone'];
 		$this->team_post_id    = (int) $profile['team_post_id'];
 		$this->child_order     = (int) $profile['child_order'];
+		$this->custom_meta      = pmprogroupacct_encode_child_custom_meta( $profile['custom_meta'] ?? array() );
 
 		$result = $wpdb->update(
 			$wpdb->pmprogroupacct_group_members,
@@ -269,10 +273,11 @@ class PMProGroupAcct_Group_Member {
 				'emergency_phone' => $this->emergency_phone,
 				'team_post_id'    => $this->team_post_id,
 				'child_order'     => $this->child_order,
+				'custom_meta'     => $this->custom_meta,
 				'status_updated'  => current_time( 'mysql' ),
 			),
 			array( 'id' => $this->id ),
-			array( '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s' ),
+			array( '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s' ),
 			array( '%d' )
 		);
 
@@ -308,6 +313,11 @@ class PMProGroupAcct_Group_Member {
 	 *
 	 * @return bool
 	 */
+
+	public function get_custom_meta() {
+		return pmprogroupacct_decode_child_custom_meta( $this->custom_meta );
+	}
+
 	public function is_profile_child() {
 		return empty( $this->group_child_user_id );
 	}
@@ -329,6 +339,7 @@ class PMProGroupAcct_Group_Member {
 			'emergency_phone' => sanitize_text_field( $profile['emergency_phone'] ?? '' ),
 			'team_post_id'    => intval( $profile['team_post_id'] ?? 0 ),
 			'child_order'     => intval( $profile['child_order'] ?? 0 ),
+			'custom_meta'     => is_array( $profile['custom_meta'] ?? null ) ? $profile['custom_meta'] : array(),
 		);
 	}
 

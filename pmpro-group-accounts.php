@@ -3,7 +3,7 @@
  * Plugin Name: Paid Memberships Pro - Group Accounts Add On
  * Plugin URI: https://www.paidmembershipspro.com/add-ons/group-accounts/
  * Description: Sell group memberships where one member pays for a collection of people to access your content individually.
- * Version: 1.6
+ * Version: 2.1.0
  * Author: Paid Memberships Pro
  * Author URI: https://www.paidmembershipspro.com
  * Text Domain: pmpro-group-accounts
@@ -13,13 +13,15 @@
 define( 'PMPROGROUPACCT_BASE_FILE', __FILE__ );
 define( 'PMPROGROUPACCT_BASENAME', plugin_basename( __FILE__ ) );
 define( 'PMPROGROUPACCT_DIR', dirname( __FILE__ ) );
-define( 'PMPROGROUPACCT_VERSION', '2.0.0' );
+define( 'PMPROGROUPACCT_VERSION', '2.1.0' );
 
 include_once( PMPROGROUPACCT_DIR . '/classes/class-pmprogroupacct-group.php' );
 include_once( PMPROGROUPACCT_DIR . '/classes/class-pmprogroupacct-group-member.php' );
 include_once( PMPROGROUPACCT_DIR . '/classes/class-pmprogroupacct-groups-list-table.php' );
 
 include_once( PMPROGROUPACCT_DIR . '/includes/functions.php' );
+include_once( PMPROGROUPACCT_DIR . '/includes/child-custom-fields.php' );
+include_once( PMPROGROUPACCT_DIR . '/includes/admin-child-fields.php' );
 include_once( PMPROGROUPACCT_DIR . '/includes/admin.php' );
 include_once( PMPROGROUPACCT_DIR . '/includes/admin-groups.php' );
 include_once( PMPROGROUPACCT_DIR . '/includes/scripts.php' );

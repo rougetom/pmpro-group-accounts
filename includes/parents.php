@@ -91,6 +91,12 @@ function pmprogroupacct_pmpro_registration_checks_parent( $continue_checkout ) {
 			pmpro_setMessage( sprintf( esc_html__( 'Please select a valid team for child %d.', 'pmpro-group-accounts' ), $i + 1 ), 'pmpro_error' );
 			return false;
 		}
+
+		$custom_validation = pmprogroupacct_validate_child_custom_meta( $profile['custom_meta'] ?? array(), 'checkout', false );
+		if ( is_wp_error( $custom_validation ) ) {
+			pmpro_setMessage( $custom_validation->get_error_message(), 'pmpro_error' );
+			return false;
+		}
 	}
 
 	$existing_group = PMProGroupAcct_Group::get_group_by_parent_user_id_and_parent_level_id( get_current_user_id(), $level->id );

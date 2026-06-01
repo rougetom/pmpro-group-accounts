@@ -27,6 +27,11 @@ function pmprogroupacct_check_for_upgrades() {
 		pmprogroupacct_db_delta_v2();
 		update_option( 'pmprogroupacct_db_version', 2.0 );
 	}
+
+	if ( $db_version < 2.1 ) {
+		pmprogroupacct_db_delta_v2_1();
+		update_option( 'pmprogroupacct_db_version', 2.1 );
+	}
 }
 
 /**
@@ -69,6 +74,7 @@ function pmprogroupacct_db_delta() {
 			`emergency_phone` varchar(50) NOT NULL DEFAULT '',
 			`team_post_id` bigint(20) unsigned NOT NULL DEFAULT 0,
 			`child_order` int(11) unsigned NOT NULL DEFAULT 0,
+			`custom_meta` longtext NULL,
 			PRIMARY KEY (`id`),
 			KEY `user_group` (`group_child_user_id`,`group_child_level_id`,`group_id`),
 			KEY `group_child_status` (`group_child_status`),
@@ -115,6 +121,21 @@ function pmprogroupacct_db_delta_v2() {
 	if ( ! empty( $user_group_index ) ) {
 		$wpdb->query( "ALTER TABLE {$wpdb->pmprogroupacct_group_members} DROP INDEX `user_group`" );
 		$wpdb->query( "ALTER TABLE {$wpdb->pmprogroupacct_group_members} ADD KEY `user_group` (`group_child_user_id`,`group_child_level_id`,`group_id`)" );
+	}
+}
+
+/**
+ * Add custom meta JSON column for per-child custom fields.
+ *
+ * @since 2.1
+ */
+function pmprogroupacct_db_delta_v2_1() {
+	global $wpdb;
+
+	$wpdb->pmprogroupacct_group_members = $wpdb->prefix . 'pmprogroupacct_group_members';
+	$column_exists = $wpdb->get_results( $wpdb->prepare( "SHOW COLUMNS FROM {$wpdb->pmprogroupacct_group_members} LIKE %s", 'custom_meta' ) );
+	if ( empty( $column_exists ) ) {
+		$wpdb->query( "ALTER TABLE {$wpdb->pmprogroupacct_group_members} ADD COLUMN `custom_meta` longtext NULL AFTER `child_order`" );
 	}
 }
 
