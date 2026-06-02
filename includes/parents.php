@@ -235,7 +235,16 @@ function pmprogroupacct_pmpro_checkout_boxes_parent() {
 	</fieldset>
 	<?php
 }
-add_action( 'pmpro_checkout_boxes', 'pmprogroupacct_pmpro_checkout_boxes_parent' );
+add_action( 'pmpro_checkout_after_user_fields', 'pmprogroupacct_pmpro_checkout_boxes_parent' );
+
+/**
+ * Which PMPro checkout user field group the Players block follows (0 = first group).
+ *
+ * @return int
+ */
+function pmprogroupacct_get_checkout_players_insert_after_group() {
+	return max( 0, (int) apply_filters( 'pmprogroupacct_checkout_players_insert_after_group', 0 ) );
+}
 
 function pmprogroupacct_pmpro_registration_checks_parent( $continue_checkout ) {
 	if ( ! $continue_checkout ) {
@@ -433,6 +442,7 @@ function pmprogroupacct_checkout_pricing_data() {
 			'paymentPlanUrl'=> admin_url( 'admin-ajax.php?action=pmprogroupacct_render_payment_plan' ),
 			'childFieldsUrl'=> admin_url( 'admin-ajax.php?action=pmprogroupacct_render_child_fields' ),
 			'paymentSummaryTitle' => __( 'Payment Summary', 'pmpro-group-accounts' ),
+			'insertAfterGroup'  => pmprogroupacct_get_checkout_players_insert_after_group(),
 		)
 	);
 }

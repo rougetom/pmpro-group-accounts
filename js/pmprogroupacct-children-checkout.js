@@ -93,6 +93,53 @@
 		return $card.find('.pmprogroupacct-payment-summary-card-content').first();
 	}
 
+	function getCheckoutUserFieldGroups() {
+		var $form = $('#pmpro_form');
+		if (!$form.length) {
+			return $();
+		}
+
+		return $form.find('fieldset[id^="pmpro_form_fieldset-"]').filter(function () {
+			return this.id !== 'pmprogroupacct_parent_fields';
+		});
+	}
+
+	function movePlayersBlock() {
+		var $players = $('#pmprogroupacct_parent_fields');
+		if (!$players.length) {
+			return;
+		}
+
+		var $groups = getCheckoutUserFieldGroups();
+		var insertAfterIndex = 0;
+
+		if (typeof pmprogroupacctCheckout !== 'undefined' && typeof pmprogroupacctCheckout.insertAfterGroup !== 'undefined') {
+			insertAfterIndex = parseInt(pmprogroupacctCheckout.insertAfterGroup, 10);
+			if (isNaN(insertAfterIndex) || insertAfterIndex < 0) {
+				insertAfterIndex = 0;
+			}
+		}
+
+		if ($groups.length >= 2) {
+			var maxIndex = $groups.length - 2;
+			var $target = $groups.eq(Math.min(insertAfterIndex, maxIndex));
+			if ($target.length) {
+				$players.insertAfter($target);
+				return;
+			}
+		}
+
+		if ($groups.length === 1) {
+			$players.insertAfter($groups.eq(0));
+			return;
+		}
+
+		var $account = $('#pmpro_user_fields');
+		if ($account.length) {
+			$players.insertAfter($account);
+		}
+	}
+
 	function moveCheckoutSections() {
 		var $children = $('#pmprogroupacct_children_container');
 		if (!$children.length) {
@@ -256,6 +303,7 @@
 			return;
 		}
 
+		movePlayersBlock();
 		moveCheckoutSections();
 		removeTopPaymentPlanSections();
 		lastChildCount = getChildCount();
@@ -268,6 +316,7 @@
 		});
 
 		$(document).on('pmprogroupacct_children_updated', function () {
+			movePlayersBlock();
 			moveCheckoutSections();
 			removeTopPaymentPlanSections();
 		});
