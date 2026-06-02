@@ -159,9 +159,11 @@
 				? pmpro_getCheckoutFormDataForCheckoutLevels()
 				: { pmprogroupacct_children_count: getChildCount() }
 		).done(function (response) {
-			if (!response.success || !response.data || !response.data.html) {
+			if (!response.success || !response.data || !response.data.html || !$.trim(response.data.html)) {
 				return;
 			}
+
+			moveCheckoutSections();
 
 			var $wrapper = $('#pmprogroupacct_checkout_pricing_area');
 			if (!$wrapper.length) {
@@ -236,7 +238,6 @@
 		lastChildCount = getChildCount();
 		updateAverage();
 		updateCheckoutPricing();
-		updatePaymentPlan();
 
 		$(document).on('change', 'input[name="pmprogroupacct_children_count"]', function () {
 			window.clearTimeout(refreshTimer);

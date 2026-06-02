@@ -26,6 +26,7 @@ include_once( PMPROGROUPACCT_DIR . '/includes/admin-child-fields.php' );
 include_once( PMPROGROUPACCT_DIR . '/includes/admin.php' );
 include_once( PMPROGROUPACCT_DIR . '/includes/admin-groups.php' );
 include_once( PMPROGROUPACCT_DIR . '/includes/scripts.php' );
+include_once( PMPROGROUPACCT_DIR . '/includes/pico-styles.php' );
 include_once( PMPROGROUPACCT_DIR . '/includes/emails.php' );
 include_once( PMPROGROUPACCT_DIR . '/includes/edit-level.php' );
 include_once( PMPROGROUPACCT_DIR . '/includes/parents.php' );
