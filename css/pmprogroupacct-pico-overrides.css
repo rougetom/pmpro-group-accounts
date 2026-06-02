@@ -86,3 +86,9 @@
 .pmpro-pico-scope .pmpro_card {
 	margin-bottom: 1.5rem;
 }
+
+.pico input:not([type=checkbox], [type=radio]),
+.pico select,
+.pico textarea {
+	margin-bottom: 0.1rem;
+}
