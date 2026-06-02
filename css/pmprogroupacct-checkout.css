@@ -60,3 +60,12 @@
 .pmprogroupacct-team-selector select {
 	width: 100%;
 }
+.pmprogroupacct-checkout-pricing {
+	margin-top: 1.5rem;
+}
+
+.pmprogroupacct-checkout-pricing + .pmpro_form_fields .pmprogroupacct-pricing-summary {
+	margin-top: 0;
+	padding-top: 0;
+	border-top: 0;
+}
