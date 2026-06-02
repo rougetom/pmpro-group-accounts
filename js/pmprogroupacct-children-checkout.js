@@ -105,6 +105,10 @@
 	}
 
 	function movePlayersBlock() {
+		if ($('#pmpro_form').hasClass('pmprogroupacct-checkout-stepped')) {
+			return;
+		}
+
 		var $players = $('#pmprogroupacct_parent_fields');
 		if (!$players.length) {
 			return;
@@ -328,5 +332,7 @@
 			updateCheckoutPricing();
 			updatePaymentPlan();
 		});
+
+		$(document).trigger('pmprogroupacct_checkout_layout_ready');
 	});
 })(jQuery);

@@ -194,3 +194,52 @@
 .pmprogroupacct_child_custom_fields {
 	margin-top: 0.75rem;
 }
+
+
+.pmprogroupacct-checkout-steps {
+	margin-top: 1rem;
+}
+
+.pmprogroupacct-checkout-steps-nav {
+	margin-bottom: 1.25rem;
+}
+
+.pmprogroupacct-checkout-steps-count {
+	margin: 0 0 0.35rem;
+	font-size: 0.95rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.pmprogroupacct-checkout-steps-title {
+	margin: 0;
+}
+
+.pmprogroupacct-checkout-step {
+	display: none;
+}
+
+.pmprogroupacct-checkout-step.is-active {
+	display: block;
+}
+
+.pmprogroupacct-checkout-steps-actions {
+	display: flex;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-top: 1.5rem;
+}
+
+.pmprogroupacct-checkout-steps-actions .pmprogroupacct-checkout-prev[hidden],
+.pmprogroupacct-checkout-steps-actions .pmprogroupacct-checkout-next[hidden] {
+	display: none;
+}
+
+.pmprogroupacct-checkout-steps-actions .pmprogroupacct-checkout-next {
+	margin-left: auto;
+}
+
+.pmprogroupacct-checkout-stepped .pmpro_form_submit {
+	margin-top: 1.5rem;
+}
