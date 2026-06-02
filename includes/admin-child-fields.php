@@ -5,13 +5,35 @@
  * @since 2.1
  */
 
+/**
+ * Parent slug for PMPro admin submenu pages.
+ *
+ * @return string
+ */
+function pmprogroupacct_get_pmpro_admin_parent_slug() {
+	if ( defined( 'PMPRO_VERSION' ) && version_compare( PMPRO_VERSION, '2.0', '>=' ) ) {
+		return 'pmpro-dashboard';
+	}
+
+	return 'pmpro-membershiplevels';
+}
+
+/**
+ * Admin URL for the player custom fields settings page.
+ *
+ * @return string
+ */
+function pmprogroupacct_get_child_fields_admin_url() {
+	return admin_url( 'admin.php?page=pmprogroupacct-child-fields' );
+}
+
 function pmprogroupacct_add_child_fields_admin_menu() {
 	if ( ! defined( 'PMPRO_VERSION' ) || ! function_exists( 'pmpro_get_edit_member_capability' ) ) {
 		return;
 	}
 
 	add_submenu_page(
-		'pmpro-membershiplevels',
+		pmprogroupacct_get_pmpro_admin_parent_slug(),
 		__( 'Player Custom Fields', 'pmpro-group-accounts' ),
 		__( 'Player Custom Fields', 'pmpro-group-accounts' ),
 		pmpro_get_edit_member_capability(),
@@ -132,7 +154,7 @@ function pmprogroupacct_render_admin_child_field_row( $index, $field, $types ) {
 }
 
 function pmprogroupacct_admin_child_fields_enqueue_scripts( $hook ) {
-	if ( 'memberships_page_pmprogroupacct-child-fields' !== $hook ) {
+	if ( false === strpos( $hook, 'pmprogroupacct-child-fields' ) ) {
 		return;
 	}
 
@@ -145,3 +167,21 @@ function pmprogroupacct_admin_child_fields_enqueue_scripts( $hook ) {
 	);
 }
 add_action( 'admin_enqueue_scripts', 'pmprogroupacct_admin_child_fields_enqueue_scripts' );
+
+/**
+ * Keep the Memberships menu highlighted on the player custom fields page.
+ *
+ * @param string $parent_file Parent file slug.
+ * @return string
+ */
+function pmprogroupacct_admin_child_fields_parent_file( $parent_file ) {
+	global $plugin_page;
+
+	if ( 'pmprogroupacct-child-fields' === $plugin_page ) {
+		return pmprogroupacct_get_pmpro_admin_parent_slug();
+	}
+
+	return $parent_file;
+}
+add_filter( 'parent_file', 'pmprogroupacct_admin_child_fields_parent_file' );
+
