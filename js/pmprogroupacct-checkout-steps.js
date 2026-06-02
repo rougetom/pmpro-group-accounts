@@ -55,34 +55,44 @@
 		appendIfPresent($step, '#pmpro_payment_information_fields');
 	}
 
-	function populateStep3($step) {
-		var $anchor = $('#pmpro_payment_information_fields');
-		if (!$anchor.length) {
-			$anchor = $('#pmpro_billing_address_fields');
-		}
-		if (!$anchor.length) {
-			$anchor = $('#pmprogroupacct_checkout_pricing_area');
-		}
+	function shouldStayAtFormRoot($element) {
+		return $element.is('#pmpro_message') || $element.is('input[type="hidden"]');
+	}
 
-		if ($anchor.length) {
-			$anchor.nextAll().each(function () {
-				var $element = $(this);
+	function populateStep3($step, $form) {
+		$form.children('.pmprogroupacct-checkout-steps').nextAll().each(function () {
+			var $element = $(this);
 
-				if ($element.hasClass('pmprogroupacct-checkout-steps')) {
-					return;
-				}
+			if (shouldStayAtFormRoot($element)) {
+				return;
+			}
 
-				if ($element.is('input[type="hidden"][name="pmpro_checkout_nonce"]')) {
-					return;
-				}
+			$step.append($element);
+		});
 
-				$step.append($element);
-			});
-			return;
-		}
+		$form.find('fieldset[id^="pmpro_form_fieldset-"]').filter(function () {
+			return !$(this).closest('.pmprogroupacct-checkout-step').length;
+		}).each(function () {
+			$step.append(this);
+		});
 
 		appendIfPresent($step, '#pmpro_message_bottom');
-		appendIfPresent($step, '.pmpro_form_submit');
+
+		if (!$step.find('.pmpro_form_submit').length) {
+			appendIfPresent($step, '.pmpro_form_submit');
+		}
+	}
+
+	function cleanupOrphanCheckoutContent($form, $step3) {
+		$form.children().not('.pmprogroupacct-checkout-steps').each(function () {
+			var $element = $(this);
+
+			if (shouldStayAtFormRoot($element) || $element.closest('.pmprogroupacct-checkout-step').length) {
+				return;
+			}
+
+			$step3.append($element);
+		});
 	}
 
 	function buildStepsMarkup() {
@@ -191,7 +201,8 @@
 
 		populateStep1($step1);
 		populateStep2($step2);
-		populateStep3($step3);
+		populateStep3($step3, $form);
+		cleanupOrphanCheckoutContent($form, $step3);
 
 		$form.addClass('pmprogroupacct-checkout-stepped');
 		initialized = true;
