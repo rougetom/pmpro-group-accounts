@@ -432,6 +432,7 @@ function pmprogroupacct_checkout_pricing_data() {
 			'checkoutLevelUrl'=> esc_url_raw( rest_url( 'pmpro/v1/checkout_level' ) ),
 			'paymentPlanUrl'=> admin_url( 'admin-ajax.php?action=pmprogroupacct_render_payment_plan' ),
 			'childFieldsUrl'=> admin_url( 'admin-ajax.php?action=pmprogroupacct_render_child_fields' ),
+			'paymentSummaryTitle' => __( 'Payment Summary', 'pmpro-group-accounts' ),
 		)
 	);
 }

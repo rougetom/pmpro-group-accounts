@@ -375,14 +375,21 @@ function pmprogroupacct_render_child_fields( $index, $profile = array(), $show_h
 		'team_post_id'    => 0,
 		'custom_meta'     => array(),
 	);
-	$profile = wp_parse_args( $profile, $defaults );
-	$prefix  = 'pmprogroupacct_children[' . (int) $index . ']';
+	$profile     = wp_parse_args( $profile, $defaults );
+	$prefix      = 'pmprogroupacct_children[' . (int) $index . ']';
+	$is_checkout = ( 'checkout' === $context && ! $is_admin );
+	$wrapper_class = $is_checkout
+		? pmpro_get_element_class( 'pmprogroupacct_child_fields pmprogroupacct-player-card pmpro_card' )
+		: pmpro_get_element_class( 'pmprogroupacct_child_fields' );
 	?>
-	<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmprogroupacct_child_fields' ) ); ?>" data-child-index="<?php echo esc_attr( (int) $index ); ?>">
+	<div class="<?php echo esc_attr( $wrapper_class ); ?>" data-child-index="<?php echo esc_attr( (int) $index ); ?>">
 		<?php if ( $show_heading ) : ?>
-			<h3 class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_font-large' ) ); ?>">
+			<h3 class="<?php echo esc_attr( $is_checkout ? pmpro_get_element_class( 'pmpro_card_title pmpro_font-large pmprogroupacct-player-card-title' ) : pmpro_get_element_class( 'pmpro_font-large' ) ); ?>">
 				<?php printf( esc_html__( 'Player %d', 'pmpro-group-accounts' ), (int) $index + 1 ); ?>
 			</h3>
+		<?php endif; ?>
+		<?php if ( $is_checkout ) : ?>
+			<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_card_content pmprogroupacct-player-card-content' ) ); ?>">
 		<?php endif; ?>
 		<input type="hidden" name="<?php echo esc_attr( $prefix ); ?>[child_order]" value="<?php echo esc_attr( (int) $index + 1 ); ?>" />
 		<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_fields' ) ); ?>">
@@ -427,6 +434,9 @@ function pmprogroupacct_render_child_fields( $index, $profile = array(), $show_h
 			do_action( 'pmprogroupacct_child_fields', $prefix, (int) $profile['team_post_id'] );
 			?>
 		</div>
+		<?php if ( $is_checkout ) : ?>
+			</div>
+		<?php endif; ?>
 	</div>
 	<?php
 }

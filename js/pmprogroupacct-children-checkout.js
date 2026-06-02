@@ -73,6 +73,26 @@
 		$wrapper.append($element.detach());
 	}
 
+	function getPaymentSummaryCardContent($wrapper) {
+		var $card = $wrapper.children('#pmprogroupacct_payment_summary_card').first();
+		var title = (typeof pmprogroupacctCheckout !== 'undefined' && pmprogroupacctCheckout.paymentSummaryTitle)
+			? pmprogroupacctCheckout.paymentSummaryTitle
+			: 'Payment Summary';
+
+		if (!$card.length) {
+			$card = $(
+				'<div id="pmprogroupacct_payment_summary_card" class="pmprogroupacct-payment-summary-card pmpro_card">' +
+					'<h2 class="pmpro_card_title pmpro_font-large pmprogroupacct-payment-summary-card-title"></h2>' +
+					'<div class="pmpro_card_content pmprogroupacct-payment-summary-card-content"></div>' +
+				'</div>'
+			);
+			$card.find('.pmprogroupacct-payment-summary-card-title').text(title);
+			$wrapper.append($card);
+		}
+
+		return $card.find('.pmprogroupacct-payment-summary-card-content').first();
+	}
+
 	function moveCheckoutSections() {
 		var $children = $('#pmprogroupacct_children_container');
 		if (!$children.length) {
@@ -85,11 +105,13 @@
 			$wrapper.insertAfter($children);
 		}
 
-		appendSectionToPricingArea($wrapper, $('#pmpro_pricing_fields').first(), function ($pricing) {
+		var $target = getPaymentSummaryCardContent($wrapper);
+
+		appendSectionToPricingArea($target, $('#pmpro_pricing_fields').first(), function ($pricing) {
 			$pricing.addClass('pmprogroupacct-checkout-pricing');
 		});
-		appendSectionToPricingArea($wrapper, $('#pmprogroupacct_payment_plan_options').first());
-		appendSectionToPricingArea($wrapper, $('#pmprogroupacct_payment_plan_area').first());
+		appendSectionToPricingArea($target, $('#pmprogroupacct_payment_plan_options').first());
+		appendSectionToPricingArea($target, $('#pmprogroupacct_payment_plan_area').first());
 	}
 
 	function removeTopPaymentPlanSections() {
@@ -170,9 +192,10 @@
 				return;
 			}
 
-			$wrapper.find('#pmprogroupacct_payment_plan_options, #pmprogroupacct_payment_plan_area').remove();
+			var $target = getPaymentSummaryCardContent($wrapper);
+			$target.find('#pmprogroupacct_payment_plan_options, #pmprogroupacct_payment_plan_area').remove();
 			removeTopPaymentPlanSections();
-			$wrapper.append(response.data.html);
+			$target.append(response.data.html);
 			moveCheckoutSections();
 			$(document).trigger('pmprogroupacct_payment_plan_updated');
 		});

@@ -94,9 +94,15 @@
 }
 
 .pmprogroupacct_child_fields + .pmprogroupacct_child_fields {
-	margin-top: 1.5rem;
-	padding-top: 1.5rem;
-	border-top: 1px solid rgba(0, 0, 0, 0.08);
+	margin-top: 0;
+}
+
+.pmprogroupacct_children_container .pmprogroupacct-player-card {
+	margin-bottom: 0;
+}
+
+.pmprogroupacct-player-card + .pmprogroupacct-player-card {
+	margin-top: 1rem;
 }
 
 .pmprogroupacct-team-selector-row {
