@@ -77,9 +77,9 @@ function pmprogroupacct_normalize_child_field_definition( $field ) {
 		'help_text'         => sanitize_text_field( $field['help_text'] ?? '' ),
 		'type'              => $type,
 		'options'           => sanitize_textarea_field( $field['options'] ?? '' ),
-		'show_checkout'     => ! empty( $field['show_checkout'] ),
+		'show_checkout'     => array_key_exists( 'show_checkout', $field ) ? ! empty( $field['show_checkout'] ) : true,
 		'required_checkout' => ! empty( $field['required_checkout'] ),
-		'show_manage'       => ! empty( $field['show_manage'] ),
+		'show_manage'       => array_key_exists( 'show_manage', $field ) ? ! empty( $field['show_manage'] ) : true,
 		'admin_only'        => ! empty( $field['admin_only'] ),
 	);
 }

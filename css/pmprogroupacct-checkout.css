@@ -164,3 +164,17 @@
 .pmprogroupacct_child_custom_field .pmpro_form_label + .pmprogroupacct_child_custom_field_help {
 	margin-bottom: 0.35rem;
 }
+
+.pmprogroupacct-player-card-content .pmpro_form_field,
+.pmprogroupacct_child_custom_fields .pmpro_form_field {
+	margin-bottom: 0.5rem;
+}
+
+.pmprogroupacct-player-card-content .pmpro_form_field:last-child,
+.pmprogroupacct_child_custom_fields .pmpro_form_field:last-child {
+	margin-bottom: 0;
+}
+
+.pmprogroupacct_child_custom_fields {
+	margin-top: 0.75rem;
+}

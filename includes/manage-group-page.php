@@ -368,7 +368,8 @@ function pmprogroupacct_shortcode_manage_group() {
 								if ( $edit_member && ! empty( $edit_member->id ) ) {
 									echo '<input type="hidden" name="pmprogroupacct_child[child_order]" value="' . esc_attr( (int) $edit_member->child_order ) . '" />';
 								}
-								do_action( 'pmprogroupacct_child_fields', 'pmprogroupacct_child', (int) $profile['team_post_id'] );
+								pmprogroupacct_render_child_custom_fields( 'pmprogroupacct_child', $profile['custom_meta'], $is_admin ? 'admin' : 'manage', $is_admin );
+																do_action( 'pmprogroupacct_child_fields', 'pmprogroupacct_child', (int) $profile['team_post_id'] );
 								?>
 							</div>
 							<input type="hidden" name="pmprogroupacct_member_id" value="<?php echo esc_attr( $edit_member && ! empty( $edit_member->id ) ? $edit_member->id : 0 ); ?>" />

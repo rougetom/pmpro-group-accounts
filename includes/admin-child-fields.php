@@ -127,7 +127,7 @@ function pmprogroupacct_render_admin_child_field_row( $index, $field, $types ) {
 			'help_text'         => '',
 			'type'              => 'text',
 			'options'           => '',
-			'show_checkout'     => false,
+			'show_checkout'     => true,
 			'required_checkout' => false,
 			'show_manage'       => true,
 			'admin_only'        => false,
