@@ -193,10 +193,21 @@ function pmprogroupacct_pmpro_checkout_boxes_parent() {
 							<p><?php printf( esc_html( _n( 'This membership includes %s player.', 'This membership includes %s players.', $settings['min_children'], 'pmpro-group-accounts' ) ), esc_html( number_format_i18n( $settings['min_children'] ) ) ); ?></p>
 						</div>
 					<?php else : ?>
-						<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field' ) ); ?>">
-							<label for="pmprogroupacct_children_count" class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>"><?php esc_html_e( 'Number of Players', 'pmpro-group-accounts' ); ?></label>
-							<input class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_input pmpro_form_input-number pmpro_alter_price', 'pmprogroupacct_children_count' ) ); ?>" id="pmprogroupacct_children_count" name="pmprogroupacct_children_count" type="number" min="<?php echo esc_attr( $settings['min_children'] ); ?>" max="<?php echo esc_attr( $settings['max_children'] ); ?>" value="<?php echo esc_attr( $child_count ); ?>" />
-							<p class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_hint' ) ); ?>"><?php printf( esc_html__( 'Choose between %1$s and %2$s players.', 'pmpro-group-accounts' ), esc_html( number_format_i18n( $settings['min_children'] ) ), esc_html( number_format_i18n( $settings['max_children'] ) ) ); ?></p>
+						<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field pmprogroupacct-player-count-field' ) ); ?>">
+							<span class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label pmprogroupacct-player-count-label' ) ); ?>"><?php esc_html_e( 'Number of Players', 'pmpro-group-accounts' ); ?></span>
+							<?php
+							echo pmprogroupacct_render_segmented_radios(
+								'pmprogroupacct_children_count',
+								pmprogroupacct_get_player_count_options( $settings ),
+								$child_count,
+								array(
+									'id_prefix'   => 'pmprogroupacct_children_count',
+									'wrapper_class' => 'radio-wrapper-20 pmprogroupacct-player-count-radios',
+									'input_class' => pmpro_get_element_class( 'pmpro_alter_price' ),
+									'size'        => 'large',
+								)
+							);
+							?>
 						</div>
 					<?php endif; ?>
 				</div>

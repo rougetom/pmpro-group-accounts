@@ -31,15 +31,20 @@
 	}
 
 	function getChildCount() {
-		var $field = $('#pmprogroupacct_children_count');
-		var count = parseInt($field.val(), 10);
+		var $selected = $('input[name="pmprogroupacct_children_count"]:checked');
+		var count = 0;
+
+		if ($selected.length) {
+			count = parseInt($selected.val(), 10);
+		} else {
+			count = parseInt($('#pmprogroupacct_children_count').val(), 10);
+		}
 
 		if (typeof pmprogroupacctCheckout !== 'undefined') {
 			count = Math.max(
 				pmprogroupacctCheckout.minChildren,
-				Math.min(pmprogroupacctCheckout.maxChildren, count || pmprogroupacctCheckout.minChildren)
+				Math.min(pmprogroupacctCheckout.maxChildren, count || 1)
 			);
-			$field.val(count);
 		}
 
 		return count;
@@ -233,7 +238,7 @@
 		updateCheckoutPricing();
 		updatePaymentPlan();
 
-		$(document).on('change input', '#pmprogroupacct_children_count', function () {
+		$(document).on('change', 'input[name="pmprogroupacct_children_count"]', function () {
 			window.clearTimeout(refreshTimer);
 			refreshTimer = window.setTimeout(handleChildCountChange, 250);
 		});
@@ -244,7 +249,7 @@
 		});
 
 		$(document).on('change', '.pmpro_alter_price', function () {
-			if ($(this).is('#pmprogroupacct_children_count')) {
+			if ($(this).is('input[name="pmprogroupacct_children_count"]')) {
 				return;
 			}
 			updateCheckoutPricing();

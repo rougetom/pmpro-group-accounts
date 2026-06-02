@@ -273,6 +273,62 @@ function pmprogroupacct_validate_team_post_id( $team_post_id ) {
 	return ! empty( $post ) && 'team' === $post->post_type && 'publish' === $post->post_status;
 }
 
+
+function pmprogroupacct_render_segmented_radios( $name, $options, $selected = '', $args = array() ) {
+	$args = wp_parse_args(
+		$args,
+		array(
+			'id_prefix'   => sanitize_key( str_replace( array( '[', ']', '_' ), '_', $name ) ),
+			'wrapper_class' => 'radio-wrapper-20',
+			'input_class' => '',
+			'label_class' => 'name',
+			'size'        => 'default',
+		)
+	);
+
+	$wrapper_classes = array( $args['wrapper_class'] );
+	if ( 'large' === $args['size'] ) {
+		$wrapper_classes[] = 'pmprogroupacct-segmented-radio-large';
+	}
+
+	ob_start();
+	?>
+	<div class="<?php echo esc_attr( implode( ' ', $wrapper_classes ) ); ?>">
+		<?php foreach ( $options as $value => $label ) : ?>
+			<?php
+			$id = $args['id_prefix'] . '_' . sanitize_key( (string) $value );
+			?>
+			<label for="<?php echo esc_attr( $id ); ?>">
+				<input
+					id="<?php echo esc_attr( $id ); ?>"
+					type="radio"
+					name="<?php echo esc_attr( $name ); ?>"
+					value="<?php echo esc_attr( $value ); ?>"
+					class="<?php echo esc_attr( $args['input_class'] ); ?>"
+					<?php checked( (string) $selected, (string) $value ); ?>
+				/>
+				<span class="<?php echo esc_attr( $args['label_class'] ); ?>"><?php echo esc_html( $label ); ?></span>
+			</label>
+			<?php endforeach; ?>
+	</div>
+	<?php
+	return ob_get_clean();
+}
+
+function pmprogroupacct_get_player_count_options( $settings ) {
+	$settings = pmprogroupacct_normalize_settings( $settings );
+	$options  = array();
+
+	for ( $i = (int) $settings['min_children']; $i <= (int) $settings['max_children']; $i++ ) {
+		$options[ $i ] = sprintf(
+			_n( '%d player', '%d players', $i, 'pmpro-group-accounts' ),
+			number_format_i18n( $i )
+		);
+	}
+
+	return $options;
+}
+
 function pmprogroupacct_get_gender_options() {
 	return array(
 		'Male'   => __( 'Male', 'pmpro-group-accounts' ),
@@ -347,13 +403,18 @@ function pmprogroupacct_render_child_fields( $index, $profile = array(), $show_h
 				</div>
 				<div class="pmprogroupacct-field-col <?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field' ) ); ?>">
 					<span class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>"><?php esc_html_e( 'Gender', 'pmpro-group-accounts' ); ?></span>
-					<div class="pmprogroupacct-gender-options" role="radiogroup" aria-label="<?php esc_attr_e( 'Gender', 'pmpro-group-accounts' ); ?>">
-						<?php foreach ( pmprogroupacct_get_gender_options() as $gender_value => $gender_label ) : ?>
-							<label class="pmprogroupacct-gender-option">
-								<input type="radio" name="<?php echo esc_attr( $prefix ); ?>[gender]" value="<?php echo esc_attr( $gender_value ); ?>" <?php checked( $profile['gender'], $gender_value ); ?> />
-								<span><?php echo esc_html( $gender_label ); ?></span>
-							</label>
-						<?php endforeach; ?>
+					<div role="radiogroup" aria-label="<?php esc_attr_e( 'Gender', 'pmpro-group-accounts' ); ?>">
+						<?php
+						echo pmprogroupacct_render_segmented_radios(
+							$prefix . '[gender]',
+							pmprogroupacct_get_gender_options(),
+							$profile['gender'],
+							array(
+								'id_prefix' => $prefix . '_gender',
+								'wrapper_class' => 'radio-wrapper-20 pmprogroupacct-gender-radios',
+							)
+						);
+						?>
 					</div>
 				</div>
 			</div>
@@ -419,7 +480,7 @@ function pmprogroupacct_get_requested_child_count( $settings ) {
 	} elseif ( isset( $_REQUEST['pmprogroupacct_seats'] ) ) {
 		$count = intval( $_REQUEST['pmprogroupacct_seats'] );
 	} else {
-		$count = (int) $settings['min_children'];
+		$count = 1;
 	}
 
 	return max( (int) $settings['min_children'], min( (int) $settings['max_children'], $count ) );
