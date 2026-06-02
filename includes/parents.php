@@ -7,6 +7,10 @@
 
 
 
+function pmprogroupacct_sandbach_handles_checkout_pricing() {
+	return defined( 'SANDBACH_MEMBERSHIPS_VERSION' ) || class_exists( 'Sandbach\\Frontend\\TeamSelector' );
+}
+
 function pmprogroupacct_is_multi_child_checkout( $level = null ) {
 	if ( null === $level ) {
 		$level = pmpro_getLevelAtCheckout();
@@ -65,7 +69,13 @@ function pmprogroupacct_ajax_render_payment_plan() {
 		}
 	}
 
-	$level = pmpro_getLevelAtCheckout();
+	$level_id = isset( $_REQUEST['level'] ) ? (int) $_REQUEST['level'] : 0;
+	if ( ! $level_id && function_exists( 'pmpro_getLevelAtCheckout' ) ) {
+		$checkout = pmpro_getLevelAtCheckout();
+		$level_id = ! empty( $checkout->id ) ? (int) $checkout->id : 0;
+	}
+
+	$level = $level_id ? pmpro_getLevel( $level_id ) : null;
 	if ( empty( $level->id ) || ! pmprogroupacct_level_is_multi_child_parent( $level->id ) ) {
 		wp_send_json_error();
 	}
@@ -75,7 +85,7 @@ function pmprogroupacct_ajax_render_payment_plan() {
 	remove_action( 'pmpro_checkout_after_pricing_fields', 'pmprogroupacct_capture_payment_plan_start', 1 );
 	remove_action( 'pmpro_checkout_after_pricing_fields', 'pmprogroupacct_capture_payment_plan_end', 999 );
 
-	$checkout_level = apply_filters( 'pmpro_checkout_level', $level );
+	$checkout_level = pmprogroupacct_sandbach_handles_checkout_pricing() ? $level : apply_filters( 'pmpro_checkout_level', $level );
 
 	ob_start();
 	do_action( 'pmpro_checkout_after_level_cost', $checkout_level );
@@ -134,7 +144,8 @@ function pmprogroupacct_rest_checkout_level_add_cost_html( $response, $server, $
 		$data = (array) $data;
 		$settings = pmprogroupacct_normalize_settings( pmprogroupacct_get_settings_for_level( $level->id ) );
 		$player_count = pmprogroupacct_get_requested_child_count( $settings );
-		$pricing = pmprogroupacct_calculate_child_total( $settings, $player_count, (float) $level->initial_payment );
+		$base_pricing = pmprogroupacct_get_level_base_pricing( $level->id );
+		$pricing = pmprogroupacct_calculate_child_total( $settings, $player_count, $base_pricing['initial_payment'] );
 		$data['player_count'] = $player_count;
 		$data['per_player_formatted'] = pmprogroupacct_format_price_amount( $pricing['average'] );
 		$data['total_formatted'] = function_exists( 'pmpro_formatPrice' ) ? pmpro_formatPrice( $pricing['total'] ) : pmprogroupacct_format_price_amount( $pricing['total'] );
@@ -161,7 +172,8 @@ function pmprogroupacct_pmpro_checkout_boxes_parent() {
 
 	$settings     = pmprogroupacct_normalize_settings( pmprogroupacct_get_settings_for_level( $level->id ) );
 	$child_count  = pmprogroupacct_get_requested_child_count( $settings );
-	$pricing      = pmprogroupacct_calculate_child_total( $settings, $child_count, (float) $level->initial_payment );
+	$base_pricing = pmprogroupacct_get_level_base_pricing( $level->id );
+	$pricing      = pmprogroupacct_calculate_child_total( $settings, $child_count, $base_pricing['initial_payment'] );
 	$fixed_count  = $settings['min_children'] === $settings['max_children'];
 	?>
 	<fieldset id="pmprogroupacct_parent_fields" class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_fieldset', 'pmprogroupacct_parent_fields' ) ); ?>">
@@ -195,7 +207,7 @@ function pmprogroupacct_pmpro_checkout_boxes_parent() {
 
 
 				<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_fields' ) ); ?>">
-					<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field pmprogroupacct-pricing-summary' ) ); ?>" id="pmprogroupacct_pricing_summary" data-base-price="<?php echo esc_attr( (float) $level->initial_payment ); ?>">
+					<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field pmprogroupacct-pricing-summary' ) ); ?>" id="pmprogroupacct_pricing_summary" data-base-price="<?php echo esc_attr( (float) $base_pricing['initial_payment'] ); ?>">
 						<p>
 							<strong><?php esc_html_e( 'Per player:', 'pmpro-group-accounts' ); ?></strong>
 							<span id="pmprogroupacct_average_price"><?php echo esc_html( pmprogroupacct_format_price_amount( $pricing['average'] ) ); ?></span>
@@ -273,7 +285,7 @@ function pmprogroupacct_pmpro_checkout_level_parent( $level ) {
 
 	return pmprogroupacct_apply_child_pricing_to_level( $level, $settings, $child_count );
 }
-add_filter( 'pmpro_checkout_level', 'pmprogroupacct_pmpro_checkout_level_parent' );
+add_filter( 'pmpro_checkout_level', 'pmprogroupacct_pmpro_checkout_level_parent', 999 );
 
 function pmprogroupacct_pmpro_after_checkout_parent( $user_id ) {
 	$level = pmpro_getLevelAtCheckout();
@@ -397,9 +409,9 @@ function pmprogroupacct_checkout_pricing_data() {
 		array(
 			'minChildren'   => (int) $settings['min_children'],
 			'maxChildren'   => (int) $settings['max_children'],
-			'basePrice'     => (float) $level->initial_payment,
+			'basePrice'     => (float) pmprogroupacct_get_level_base_pricing( $level->id )['initial_payment'],
 			'pricingTiers'  => $settings['pricing_tiers'],
-			'currencySymbol'=> pmprogroupacct_get_currency_symbol(),
+			'currencySymbol'=> html_entity_decode( pmprogroupacct_get_currency_symbol(), ENT_QUOTES, 'UTF-8' ),
 			'decimals'      => pmprogroupacct_get_currency_decimals(),
 			'checkoutLevelUrl'=> esc_url_raw( rest_url( 'pmpro/v1/checkout_level' ) ),
 			'paymentPlanUrl'=> admin_url( 'admin-ajax.php?action=pmprogroupacct_render_payment_plan' ),

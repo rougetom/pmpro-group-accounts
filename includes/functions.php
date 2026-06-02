@@ -81,9 +81,28 @@ function pmprogroupacct_calculate_child_total( $settings, $child_count, $level_b
 	);
 }
 
+
+function pmprogroupacct_get_level_base_pricing( $level_id ) {
+	\$level_id = (int) \$level_id;
+	\$base     = pmpro_getLevel( \$level_id );
+
+	if ( empty( \$base ) ) {
+		return array(
+			'initial_payment' => 0,
+			'billing_amount'  => 0,
+		);
+	}
+
+	return array(
+		'initial_payment' => (float) \$base->initial_payment,
+		'billing_amount'  => (float) \$base->billing_amount,
+	);
+}
+
 function pmprogroupacct_apply_child_pricing_to_level( $level, $settings, $child_count ) {
-	$initial_pricing   = pmprogroupacct_calculate_child_total( $settings, $child_count, (float) $level->initial_payment );
-	$recurring_pricing = pmprogroupacct_calculate_child_total( $settings, $child_count, (float) $level->billing_amount );
+	$base_pricing      = pmprogroupacct_get_level_base_pricing( $level->id );
+	$initial_pricing   = pmprogroupacct_calculate_child_total( $settings, $child_count, $base_pricing['initial_payment'] );
+	$recurring_pricing = pmprogroupacct_calculate_child_total( $settings, $child_count, $base_pricing['billing_amount'] );
 
 	switch ( $settings['price_application'] ) {
 		case 'both':
