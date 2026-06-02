@@ -1,0 +1,62 @@
+.pmprogroupacct-field-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem;
+	margin-bottom: 0.5rem;
+}
+
+.pmprogroupacct-field-col {
+	flex: 1 1 calc(50% - 0.5rem);
+	min-width: 220px;
+}
+
+.pmprogroupacct-gender-options {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem;
+	margin-top: 0.35rem;
+}
+
+.pmprogroupacct-gender-option {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+}
+
+.pmprogroupacct-pricing-summary {
+	margin-top: 1.5rem;
+	padding-top: 1rem;
+	border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.pmprogroupacct_children_container {
+	margin-top: 1rem;
+}
+
+.pmprogroupacct_child_fields + .pmprogroupacct_child_fields {
+	margin-top: 1.5rem;
+	padding-top: 1.5rem;
+	border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.pmprogroupacct-team-selector-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem;
+	margin-top: 0.5rem;
+}
+
+.pmprogroupacct-team-selector-field {
+	flex: 1 1 180px;
+	min-width: 180px;
+}
+
+.pmprogroupacct-team-selector-label {
+	display: block;
+	margin-bottom: 0.35rem;
+	font-weight: 600;
+}
+
+.pmprogroupacct-team-selector select {
+	width: 100%;
+}

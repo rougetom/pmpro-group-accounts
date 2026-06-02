@@ -35,14 +35,6 @@ function pmprogroupacct_pmpro_checkout_boxes_parent() {
 							<p class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_hint' ) ); ?>"><?php printf( esc_html__( 'Choose between %1$s and %2$s children.', 'pmpro-group-accounts' ), esc_html( number_format_i18n( $settings['min_children'] ) ), esc_html( number_format_i18n( $settings['max_children'] ) ) ); ?></p>
 						</div>
 					<?php endif; ?>
-
-					<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field pmprogroupacct-pricing-summary' ) ); ?>" id="pmprogroupacct_pricing_summary" data-base-price="<?php echo esc_attr( (float) $level->initial_payment ); ?>">
-						<p>
-							<strong><?php esc_html_e( 'Per player:', 'pmpro-group-accounts' ); ?></strong>
-							<span id="pmprogroupacct_average_price"><?php echo esc_html( pmpro_formatPrice( $pricing['average'] ) ); ?></span>
-						</p>
-						<p class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_hint' ) ); ?>"><?php esc_html_e( 'The first child pays the membership level price. Additional children use discounted tier pricing.', 'pmpro-group-accounts' ); ?></p>
-					</div>
 				</div>
 
 				<div id="pmprogroupacct_children_container" class="<?php echo esc_attr( pmpro_get_element_class( 'pmprogroupacct_children_container' ) ); ?>">
@@ -51,6 +43,16 @@ function pmprogroupacct_pmpro_checkout_boxes_parent() {
 						pmprogroupacct_render_child_fields( $i );
 					}
 					?>
+				</div>
+
+				<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_fields' ) ); ?>">
+					<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field pmprogroupacct-pricing-summary' ) ); ?>" id="pmprogroupacct_pricing_summary" data-base-price="<?php echo esc_attr( (float) $level->initial_payment ); ?>">
+						<p>
+							<strong><?php esc_html_e( 'Per player:', 'pmpro-group-accounts' ); ?></strong>
+							<span id="pmprogroupacct_average_price"><?php echo esc_html( pmprogroupacct_format_price_amount( $pricing['average'] ) ); ?></span>
+						</p>
+						<p class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_hint' ) ); ?>"><?php esc_html_e( 'The first child pays the membership level price. Additional children use discounted tier pricing.', 'pmpro-group-accounts' ); ?></p>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -249,6 +251,7 @@ function pmprogroupacct_checkout_pricing_data() {
 			'basePrice'     => (float) $level->initial_payment,
 			'pricingTiers'  => $settings['pricing_tiers'],
 			'currencySymbol'=> pmprogroupacct_get_currency_symbol(),
+			'decimals'      => pmprogroupacct_get_currency_decimals(),
 			'childFieldsUrl'=> admin_url( 'admin-ajax.php?action=pmprogroupacct_render_child_fields' ),
 		)
 	);

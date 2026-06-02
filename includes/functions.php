@@ -135,6 +135,35 @@ function pmprogroupacct_get_currency_symbol() {
 	return '$';
 }
 
+/**
+ * Get the number of decimal places for the active PMPro currency.
+ *
+ * @return int
+ */
+function pmprogroupacct_get_currency_decimals() {
+	if ( function_exists( 'pmpro_get_currency' ) ) {
+		$currency = pmpro_get_currency();
+		if ( isset( $currency['decimals'] ) ) {
+			return (int) $currency['decimals'];
+		}
+	}
+
+	return 2;
+}
+
+/**
+ * Format a numeric amount with the active currency symbol.
+ *
+ * @param float $amount Amount to format.
+ * @return string
+ */
+function pmprogroupacct_format_price_amount( $amount ) {
+	$symbol   = pmprogroupacct_get_currency_symbol();
+	$decimals = pmprogroupacct_get_currency_decimals();
+
+	return $symbol . number_format_i18n( (float) $amount, $decimals );
+}
+
 function pmprogroupacct_get_team_display( $team_post_id ) {
 	$display = array(
 		'team'     => '',
@@ -181,6 +210,18 @@ function pmprogroupacct_validate_team_post_id( $team_post_id ) {
 	return ! empty( $post ) && 'team' === $post->post_type && 'publish' === $post->post_status;
 }
 
+function pmprogroupacct_get_gender_options() {
+	return array(
+		'Male'   => __( 'Male', 'pmpro-group-accounts' ),
+		'Female' => __( 'Female', 'pmpro-group-accounts' ),
+	);
+}
+
+function pmprogroupacct_sanitize_gender( $gender ) {
+	$gender = sanitize_text_field( $gender );
+	return array_key_exists( $gender, pmprogroupacct_get_gender_options() ) ? $gender : '';
+}
+
 function pmprogroupacct_parse_child_profile_from_request( $prefix ) {
 	if ( ! isset( $_REQUEST['pmprogroupacct_children'] ) || ! is_array( $_REQUEST['pmprogroupacct_children'] ) ) {
 		return null;
@@ -197,7 +238,7 @@ function pmprogroupacct_parse_child_profile_from_request( $prefix ) {
 		'first_name'      => sanitize_text_field( $data['first_name'] ?? '' ),
 		'last_name'       => sanitize_text_field( $data['last_name'] ?? '' ),
 		'date_of_birth'   => sanitize_text_field( $data['date_of_birth'] ?? '' ),
-		'gender'          => sanitize_text_field( $data['gender'] ?? '' ),
+		'gender'          => pmprogroupacct_sanitize_gender( $data['gender'] ?? '' ),
 		'emergency_phone' => sanitize_text_field( $data['emergency_phone'] ?? '' ),
 		'team_post_id'    => intval( $data['team_post_id'] ?? 0 ),
 		'child_order'     => intval( $data['child_order'] ?? ( (int) $index + 1 ) ),
@@ -226,21 +267,32 @@ function pmprogroupacct_render_child_fields( $index, $profile = array(), $show_h
 		<?php endif; ?>
 		<input type="hidden" name="<?php echo esc_attr( $prefix ); ?>[child_order]" value="<?php echo esc_attr( (int) $index + 1 ); ?>" />
 		<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_fields' ) ); ?>">
-			<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field' ) ); ?>">
-				<label class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>" for="<?php echo esc_attr( $prefix ); ?>_first_name"><?php esc_html_e( 'First Name', 'pmpro-group-accounts' ); ?></label>
-				<input class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_input' ) ); ?>" type="text" id="<?php echo esc_attr( $prefix ); ?>_first_name" name="<?php echo esc_attr( $prefix ); ?>[first_name]" value="<?php echo esc_attr( $profile['first_name'] ); ?>" required />
+			<div class="pmprogroupacct-field-row">
+				<div class="pmprogroupacct-field-col <?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field' ) ); ?>">
+					<label class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>" for="<?php echo esc_attr( $prefix ); ?>_first_name"><?php esc_html_e( 'First Name', 'pmpro-group-accounts' ); ?></label>
+					<input class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_input' ) ); ?>" type="text" id="<?php echo esc_attr( $prefix ); ?>_first_name" name="<?php echo esc_attr( $prefix ); ?>[first_name]" value="<?php echo esc_attr( $profile['first_name'] ); ?>" required />
+				</div>
+				<div class="pmprogroupacct-field-col <?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field' ) ); ?>">
+					<label class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>" for="<?php echo esc_attr( $prefix ); ?>_last_name"><?php esc_html_e( 'Last Name', 'pmpro-group-accounts' ); ?></label>
+					<input class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_input' ) ); ?>" type="text" id="<?php echo esc_attr( $prefix ); ?>_last_name" name="<?php echo esc_attr( $prefix ); ?>[last_name]" value="<?php echo esc_attr( $profile['last_name'] ); ?>" required />
+				</div>
 			</div>
-			<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field' ) ); ?>">
-				<label class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>" for="<?php echo esc_attr( $prefix ); ?>_last_name"><?php esc_html_e( 'Last Name', 'pmpro-group-accounts' ); ?></label>
-				<input class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_input' ) ); ?>" type="text" id="<?php echo esc_attr( $prefix ); ?>_last_name" name="<?php echo esc_attr( $prefix ); ?>[last_name]" value="<?php echo esc_attr( $profile['last_name'] ); ?>" required />
-			</div>
-			<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field' ) ); ?>">
-				<label class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>" for="<?php echo esc_attr( $prefix ); ?>_date_of_birth"><?php esc_html_e( 'Date of Birth', 'pmpro-group-accounts' ); ?></label>
-				<input class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_input' ) ); ?>" type="date" id="<?php echo esc_attr( $prefix ); ?>_date_of_birth" name="<?php echo esc_attr( $prefix ); ?>[date_of_birth]" value="<?php echo esc_attr( $profile['date_of_birth'] ); ?>" />
-			</div>
-			<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field' ) ); ?>">
-				<label class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>" for="<?php echo esc_attr( $prefix ); ?>_gender"><?php esc_html_e( 'Gender', 'pmpro-group-accounts' ); ?></label>
-				<input class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_input' ) ); ?>" type="text" id="<?php echo esc_attr( $prefix ); ?>_gender" name="<?php echo esc_attr( $prefix ); ?>[gender]" value="<?php echo esc_attr( $profile['gender'] ); ?>" />
+			<div class="pmprogroupacct-field-row">
+				<div class="pmprogroupacct-field-col <?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field' ) ); ?>">
+					<label class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>" for="<?php echo esc_attr( $prefix ); ?>_date_of_birth"><?php esc_html_e( 'Date of Birth', 'pmpro-group-accounts' ); ?></label>
+					<input class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_input' ) ); ?>" type="date" id="<?php echo esc_attr( $prefix ); ?>_date_of_birth" name="<?php echo esc_attr( $prefix ); ?>[date_of_birth]" value="<?php echo esc_attr( $profile['date_of_birth'] ); ?>" />
+				</div>
+				<div class="pmprogroupacct-field-col <?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field' ) ); ?>">
+					<span class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>"><?php esc_html_e( 'Gender', 'pmpro-group-accounts' ); ?></span>
+					<div class="pmprogroupacct-gender-options" role="radiogroup" aria-label="<?php esc_attr_e( 'Gender', 'pmpro-group-accounts' ); ?>">
+						<?php foreach ( pmprogroupacct_get_gender_options() as $gender_value => $gender_label ) : ?>
+							<label class="pmprogroupacct-gender-option">
+								<input type="radio" name="<?php echo esc_attr( $prefix ); ?>[gender]" value="<?php echo esc_attr( $gender_value ); ?>" <?php checked( $profile['gender'], $gender_value ); ?> />
+								<span><?php echo esc_html( $gender_label ); ?></span>
+							</label>
+						<?php endforeach; ?>
+					</div>
+				</div>
 			</div>
 			<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field' ) ); ?>">
 				<label class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>" for="<?php echo esc_attr( $prefix ); ?>_emergency_phone"><?php esc_html_e( 'Emergency Contact Phone', 'pmpro-group-accounts' ); ?></label>

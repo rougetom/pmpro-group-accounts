@@ -17,6 +17,14 @@ jQuery(document).ready(function ($) {
 		return total;
 	}
 
+	function formatAverage(amount) {
+		var decimals = typeof pmprogroupacctCheckout.decimals !== 'undefined'
+			? parseInt(pmprogroupacctCheckout.decimals, 10)
+			: 2;
+		var symbol = pmprogroupacctCheckout.currencySymbol || '';
+		return symbol + amount.toFixed(decimals);
+	}
+
 	function updateAverage() {
 		if (typeof pmprogroupacctCheckout === 'undefined') {
 			return;
@@ -25,11 +33,13 @@ jQuery(document).ready(function ($) {
 		var count = parseInt($('#pmprogroupacct_children_count').val(), 10) || pmprogroupacctCheckout.minChildren;
 		var total = calculateTotal(count, pmprogroupacctCheckout.basePrice, pmprogroupacctCheckout.pricingTiers);
 		var average = count > 0 ? total / count : 0;
-		$('#pmprogroupacct_average_price').text(
-			typeof pmpro_formatPrice === 'function'
-				? pmpro_formatPrice(average)
-				: average.toFixed(2)
-		);
+		$('#pmprogroupacct_average_price').text(formatAverage(average));
+	}
+
+	function triggerPmproPriceUpdate() {
+		if (typeof pmpro_updatePrice === 'function') {
+			pmpro_updatePrice();
+		}
 	}
 
 	function refreshChildFields(count) {
@@ -41,6 +51,11 @@ jQuery(document).ready(function ($) {
 		$container.empty();
 
 		var pending = count;
+		if (pending === 0) {
+			$(document).trigger('pmprogroupacct_children_updated');
+			return;
+		}
+
 		for (var i = 0; i < count; i++) {
 			(function (index) {
 				$.post(pmprogroupacctCheckout.childFieldsUrl, { index: index }).done(function (response) {
@@ -64,6 +79,7 @@ jQuery(document).ready(function ($) {
 			refreshChildFields(count);
 		}
 		updateAverage();
+		triggerPmproPriceUpdate();
 	});
 
 	updateAverage();
