@@ -76,7 +76,7 @@ function pmprogroupacct_render_team_selector( $field_prefix, $selected_team = 0 
 	$categories    = pmprogroupacct_get_team_category_terms();
 	$category_tax  = get_taxonomy( 'team_category' );
 	$level_tax     = get_taxonomy( 'team_level' );
-	$team_label    = post_type_object( 'team' );
+	$team_label    = get_post_type_object( 'team' );
 	?>
 	<div class="pmprogroupacct-team-selector" data-prefix="<?php echo esc_attr( $field_prefix ); ?>" data-selected-team="<?php echo esc_attr( $selected_team ); ?>">
 		<input type="hidden" class="pmprogroupacct-team-post-id" name="<?php echo esc_attr( $field_prefix ); ?>[team_post_id]" value="<?php echo esc_attr( $selected_team ); ?>" />

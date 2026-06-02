@@ -193,7 +193,7 @@ function pmprogroupacct_shortcode_manage_group() {
 	$edit_member      = $edit_member_id ? new PMProGroupAcct_Group_Member( $edit_member_id ) : null;
 	$category_tax     = get_taxonomy( 'team_category' );
 	$level_tax        = get_taxonomy( 'team_level' );
-	$team_post_object = post_type_object( 'team' );
+	$team_post_object = get_post_type_object( 'team' );
 
 	$member_args = array(
 		'group_id'           => $group->id,

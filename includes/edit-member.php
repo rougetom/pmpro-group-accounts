@@ -46,7 +46,7 @@ function pmprogroupacct_show_group_account_info( $user ) {
 
 	$category_tax = get_taxonomy( 'team_category' );
 	$level_tax    = get_taxonomy( 'team_level' );
-	$team_object  = post_type_object( 'team' );
+	$team_object  = get_post_type_object( 'team' );
 	?>
 	<h3><?php esc_html_e( 'Manage Memberships with Children', 'pmpro-group-accounts' ); ?></h3>
 	<?php if ( empty( $groups ) && empty( $levels_without_groups ) ) : ?>
