@@ -74,6 +74,7 @@ function pmprogroupacct_normalize_child_field_definition( $field ) {
 	return array(
 		'key'               => $key,
 		'label'             => $label,
+		'help_text'         => sanitize_text_field( $field['help_text'] ?? '' ),
 		'type'              => $type,
 		'options'           => sanitize_textarea_field( $field['options'] ?? '' ),
 		'show_checkout'     => ! empty( $field['show_checkout'] ),
@@ -143,6 +144,21 @@ function pmprogroupacct_parse_child_field_options( $options ) {
  * @param string $context     checkout|manage|admin
  * @param bool   $is_admin    Whether current user is admin.
  */
+
+/**
+ * Render optional help text below a custom field label.
+ *
+ * @param array $field Field definition.
+ */
+function pmprogroupacct_render_child_custom_field_help_text( $field ) {
+	if ( empty( $field['help_text'] ) ) {
+		return;
+	}
+	?>
+	<small class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_hint pmprogroupacct_child_custom_field_help' ) ); ?>"><?php echo esc_html( $field['help_text'] ); ?></small>
+	<?php
+}
+
 function pmprogroupacct_render_child_custom_fields( $name_prefix, $values = array(), $context = 'checkout', $is_admin = false ) {
 	$fields = pmprogroupacct_get_child_fields_for_context( $context, $is_admin );
 	if ( empty( $fields ) ) {
@@ -166,8 +182,12 @@ function pmprogroupacct_render_child_custom_fields( $name_prefix, $values = arra
 							<span class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_asterisk' ) ); ?>">*</span>
 						<?php endif; ?>
 					</label>
+					<?php pmprogroupacct_render_child_custom_field_help_text( $field ); ?>
 				<?php endif; ?>
 				<?php pmprogroupacct_render_child_custom_field_input( $field, $field_id, $field_value, $required ); ?>
+				<?php if ( 'checkbox' === $field['type'] ) : ?>
+					<?php pmprogroupacct_render_child_custom_field_help_text( $field ); ?>
+				<?php endif; ?>
 			</div>
 		<?php endforeach; ?>
 	</div>

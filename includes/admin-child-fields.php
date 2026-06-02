@@ -124,6 +124,7 @@ function pmprogroupacct_render_admin_child_field_row( $index, $field, $types ) {
 		array(
 			'key'               => '',
 			'label'             => '',
+			'help_text'         => '',
 			'type'              => 'text',
 			'options'           => '',
 			'show_checkout'     => false,
@@ -136,6 +137,7 @@ function pmprogroupacct_render_admin_child_field_row( $index, $field, $types ) {
 	<tr>
 		<td><input type="text" name="pmprogroupacct_child_fields[<?php echo esc_attr( $index ); ?>][key]" value="<?php echo esc_attr( $field['key'] ); ?>" class="regular-text" placeholder="medical_notes" /></td>
 		<td><input type="text" name="pmprogroupacct_child_fields[<?php echo esc_attr( $index ); ?>][label]" value="<?php echo esc_attr( $field['label'] ); ?>" class="regular-text" /></td>
+		<td><input type="text" name="pmprogroupacct_child_fields[<?php echo esc_attr( $index ); ?>][help_text]" value="<?php echo esc_attr( $field['help_text'] ); ?>" class="regular-text" placeholder="<?php esc_attr_e( 'Optional hint shown below the label', 'pmpro-group-accounts' ); ?>" /></td>
 		<td>
 			<select name="pmprogroupacct_child_fields[<?php echo esc_attr( $index ); ?>][type]">
 				<?php foreach ( $types as $type_key => $type_label ) : ?>

@@ -154,3 +154,13 @@
 #pmprogroupacct_checkout_pricing_area .pmprogroupacct-payment-plan-area {
 	display: block;
 }
+
+.pmprogroupacct_child_custom_field_help {
+	display: block;
+	margin-top: 0.25rem;
+	margin-bottom: 0.5rem;
+}
+
+.pmprogroupacct_child_custom_field .pmpro_form_label + .pmprogroupacct_child_custom_field_help {
+	margin-bottom: 0.35rem;
+}
