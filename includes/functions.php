@@ -262,18 +262,18 @@ function pmprogroupacct_render_child_fields( $index, $profile = array(), $show_h
 	<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmprogroupacct_child_fields' ) ); ?>" data-child-index="<?php echo esc_attr( (int) $index ); ?>">
 		<?php if ( $show_heading ) : ?>
 			<h3 class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_font-large' ) ); ?>">
-				<?php printf( esc_html__( 'Child %d', 'pmpro-group-accounts' ), (int) $index + 1 ); ?>
+				<?php printf( esc_html__( 'Player %d', 'pmpro-group-accounts' ), (int) $index + 1 ); ?>
 			</h3>
 		<?php endif; ?>
 		<input type="hidden" name="<?php echo esc_attr( $prefix ); ?>[child_order]" value="<?php echo esc_attr( (int) $index + 1 ); ?>" />
 		<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_fields' ) ); ?>">
 			<div class="pmprogroupacct-field-row">
 				<div class="pmprogroupacct-field-col <?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field' ) ); ?>">
-					<label class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>" for="<?php echo esc_attr( $prefix ); ?>_first_name"><?php esc_html_e( 'First Name', 'pmpro-group-accounts' ); ?></label>
+					<label class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>" for="<?php echo esc_attr( $prefix ); ?>_first_name"><?php esc_html_e( 'Player First Name', 'pmpro-group-accounts' ); ?></label>
 					<input class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_input' ) ); ?>" type="text" id="<?php echo esc_attr( $prefix ); ?>_first_name" name="<?php echo esc_attr( $prefix ); ?>[first_name]" value="<?php echo esc_attr( $profile['first_name'] ); ?>" required />
 				</div>
 				<div class="pmprogroupacct-field-col <?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field' ) ); ?>">
-					<label class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>" for="<?php echo esc_attr( $prefix ); ?>_last_name"><?php esc_html_e( 'Last Name', 'pmpro-group-accounts' ); ?></label>
+					<label class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>" for="<?php echo esc_attr( $prefix ); ?>_last_name"><?php esc_html_e( 'Player Last Name', 'pmpro-group-accounts' ); ?></label>
 					<input class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_input' ) ); ?>" type="text" id="<?php echo esc_attr( $prefix ); ?>_last_name" name="<?php echo esc_attr( $prefix ); ?>[last_name]" value="<?php echo esc_attr( $profile['last_name'] ); ?>" required />
 				</div>
 			</div>

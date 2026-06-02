@@ -29,38 +29,38 @@ function pmprogroupacct_pmpro_membership_level_before_content_settings( $level )
 		<div class="pmpro_section_toggle">
 			<button class="pmpro_section-toggle-button" type="button" aria-expanded="true">
 				<span class="dashicons dashicons-arrow-up-alt2"></span>
-				<?php esc_html_e( 'Multi-Child Membership Settings', 'pmpro-group-accounts' ); ?>
+				<?php esc_html_e( 'Multi-Player Membership Settings', 'pmpro-group-accounts' ); ?>
 			</button>
 		</div>
 		<div class="pmpro_section_inside">
-			<p><?php esc_html_e( 'Allow members to register multiple children on one membership. The first child pays the membership level price; additional children use tiered pricing configured below.', 'pmpro-group-accounts' ); ?></p>
+			<p><?php esc_html_e( 'Allow members to register multiple players on one membership. The first player pays the membership level price; additional players use tiered pricing configured below.', 'pmpro-group-accounts' ); ?></p>
 			<table class="form-table">
 				<tbody>
 					<tr>
 						<th scope="row" valign="top">
-							<label for="pmprogroupacct_multi_child_enabled"><?php esc_html_e( 'Enable Multi-Child Membership', 'pmpro-group-accounts' ); ?></label>
+							<label for="pmprogroupacct_multi_child_enabled"><?php esc_html_e( 'Enable Multi-Player Membership', 'pmpro-group-accounts' ); ?></label>
 						</th>
 						<td>
 							<label for="pmprogroupacct_multi_child_enabled">
 								<input id="pmprogroupacct_multi_child_enabled" name="pmprogroupacct_multi_child_enabled" type="checkbox" value="1" <?php checked( ! empty( $settings['multi_child_enabled'] ) ); ?> />
-								<?php esc_html_e( 'This level supports multiple children on one membership.', 'pmpro-group-accounts' ); ?>
+								<?php esc_html_e( 'This level supports multiple players on one membership.', 'pmpro-group-accounts' ); ?>
 							</label>
 						</td>
 					</tr>
 					<tr class="pmprogroupacct_setting">
 						<th scope="row" valign="top">
-							<label for="pmprogroupacct_group_type"><?php esc_html_e( 'Number of Children', 'pmpro-group-accounts' ); ?></label>
+							<label for="pmprogroupacct_group_type"><?php esc_html_e( 'Number of Players', 'pmpro-group-accounts' ); ?></label>
 						</th>
 						<td>
 							<select id="pmprogroupacct_group_type" name="pmprogroupacct_group_type">
-								<option value="fixed" <?php selected( $settings['min_children'] === $settings['max_children'] ); ?>><?php esc_html_e( 'Fixed - Set a specific number of children.', 'pmpro-group-accounts' ); ?></option>
-								<option value="variable" <?php selected( $settings['min_children'] !== $settings['max_children'] ); ?>><?php esc_html_e( 'Variable - Member chooses number of children at checkout.', 'pmpro-group-accounts' ); ?></option>
+								<option value="fixed" <?php selected( $settings['min_children'] === $settings['max_children'] ); ?>><?php esc_html_e( 'Fixed - Set a specific number of players.', 'pmpro-group-accounts' ); ?></option>
+								<option value="variable" <?php selected( $settings['min_children'] !== $settings['max_children'] ); ?>><?php esc_html_e( 'Variable - Member chooses number of players at checkout.', 'pmpro-group-accounts' ); ?></option>
 							</select>
 						</td>
 					</tr>
 					<tr class="pmprogroupacct_setting pmprogroupacct_group_type_setting pmprogroupacct_group_type_setting_fixed">
 						<th scope="row" valign="top">
-							<label for="pmprogroupacct_total_children"><?php esc_html_e( 'Total Children', 'pmpro-group-accounts' ); ?></label>
+							<label for="pmprogroupacct_total_children"><?php esc_html_e( 'Total Players', 'pmpro-group-accounts' ); ?></label>
 						</th>
 						<td>
 							<input id="pmprogroupacct_total_children" name="pmprogroupacct_total_children" type="number" min="1" max="4294967295" value="<?php echo esc_attr( max( 1, (int) $settings['min_children'] ) ); ?>" />
@@ -68,7 +68,7 @@ function pmprogroupacct_pmpro_membership_level_before_content_settings( $level )
 					</tr>
 					<tr class="pmprogroupacct_setting pmprogroupacct_group_type_setting pmprogroupacct_group_type_setting_variable">
 						<th scope="row" valign="top">
-							<label for="pmprogroupacct_min_children"><?php esc_html_e( 'Minimum Children', 'pmpro-group-accounts' ); ?></label>
+							<label for="pmprogroupacct_min_children"><?php esc_html_e( 'Minimum Players', 'pmpro-group-accounts' ); ?></label>
 						</th>
 						<td>
 							<input id="pmprogroupacct_min_children" name="pmprogroupacct_min_children" type="number" min="1" max="4294967295" value="<?php echo esc_attr( max( 1, (int) $settings['min_children'] ) ); ?>" />
@@ -76,20 +76,20 @@ function pmprogroupacct_pmpro_membership_level_before_content_settings( $level )
 					</tr>
 					<tr class="pmprogroupacct_setting pmprogroupacct_group_type_setting pmprogroupacct_group_type_setting_variable">
 						<th scope="row" valign="top">
-							<label for="pmprogroupacct_max_children"><?php esc_html_e( 'Maximum Children', 'pmpro-group-accounts' ); ?></label>
+							<label for="pmprogroupacct_max_children"><?php esc_html_e( 'Maximum Players', 'pmpro-group-accounts' ); ?></label>
 						</th>
 						<td>
 							<input id="pmprogroupacct_max_children" name="pmprogroupacct_max_children" type="number" min="1" max="4294967295" value="<?php echo esc_attr( max( 1, (int) $settings['max_children'] ) ); ?>" />
 						</td>
 					</tr>
 					<tr class="pmprogroupacct_setting">
-						<th scope="row" valign="top"><?php esc_html_e( 'Tiered Child Pricing', 'pmpro-group-accounts' ); ?></th>
+						<th scope="row" valign="top"><?php esc_html_e( 'Tiered Player Pricing', 'pmpro-group-accounts' ); ?></th>
 						<td>
-							<p class="description"><?php esc_html_e( 'Leave child 1 at 0 to use this membership level price. Set prices for additional children by position. The last tier applies to all subsequent children.', 'pmpro-group-accounts' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Leave player 1 at 0 to use this membership level price. Set prices for additional players by position. The last tier applies to all subsequent players.', 'pmpro-group-accounts' ); ?></p>
 							<table class="widefat striped">
 								<thead>
 									<tr>
-										<th><?php esc_html_e( 'Child Position', 'pmpro-group-accounts' ); ?></th>
+										<th><?php esc_html_e( 'Player Position', 'pmpro-group-accounts' ); ?></th>
 										<th><?php esc_html_e( 'Price', 'pmpro-group-accounts' ); ?></th>
 									</tr>
 								</thead>
@@ -99,11 +99,11 @@ function pmprogroupacct_pmpro_membership_level_before_content_settings( $level )
 											<td>
 												<?php
 												if ( 1 === $tier ) {
-													esc_html_e( '1st child (0 = level price)', 'pmpro-group-accounts' );
+													esc_html_e( '1st player (0 = level price)', 'pmpro-group-accounts' );
 												} elseif ( 5 === $tier ) {
-													esc_html_e( '5th child and beyond', 'pmpro-group-accounts' );
+													esc_html_e( '5th player and beyond', 'pmpro-group-accounts' );
 												} else {
-													printf( esc_html__( '%d child', 'pmpro-group-accounts' ), $tier );
+													printf( esc_html__( '%d player', 'pmpro-group-accounts' ), $tier );
 												}
 												?>
 											</td>

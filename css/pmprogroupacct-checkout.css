@@ -69,3 +69,21 @@
 	padding-top: 0;
 	border-top: 0;
 }
+
+.pmprogroupacct-checkout-pricing-area {
+	margin-top: 1.5rem;
+}
+
+.pmprogroupacct-payment-plan-area {
+	margin-top: 1rem;
+}
+
+#pmpro_form .pmprogroupacct-payment-plan-options,
+#pmpro_form .pmprogroupacct-payment-plan-area {
+	display: none;
+}
+
+#pmprogroupacct_checkout_pricing_area .pmprogroupacct-payment-plan-options,
+#pmprogroupacct_checkout_pricing_area .pmprogroupacct-payment-plan-area {
+	display: block;
+}

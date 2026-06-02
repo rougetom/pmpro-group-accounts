@@ -48,9 +48,9 @@ function pmprogroupacct_show_group_account_info( $user ) {
 	$level_tax    = get_taxonomy( 'team_level' );
 	$team_object  = get_post_type_object( 'team' );
 	?>
-	<h3><?php esc_html_e( 'Manage Memberships with Children', 'pmpro-group-accounts' ); ?></h3>
+	<h3><?php esc_html_e( 'Manage Memberships with Players', 'pmpro-group-accounts' ); ?></h3>
 	<?php if ( empty( $groups ) && empty( $levels_without_groups ) ) : ?>
-		<p><?php esc_html_e( 'This user does not manage any multi-child memberships.', 'pmpro-group-accounts' ); ?></p>
+		<p><?php esc_html_e( 'This user does not manage any multi-player memberships.', 'pmpro-group-accounts' ); ?></p>
 	<?php endif; ?>
 
 	<?php if ( ! empty( $groups ) ) : ?>
@@ -59,7 +59,7 @@ function pmprogroupacct_show_group_account_info( $user ) {
 				<tr>
 					<th><?php esc_html_e( 'Group ID', 'pmpro-group-accounts' ); ?></th>
 					<th><?php esc_html_e( 'Parent Level', 'pmpro-group-accounts' ); ?></th>
-					<th><?php esc_html_e( 'Children', 'pmpro-group-accounts' ); ?></th>
+					<th><?php esc_html_e( 'Players', 'pmpro-group-accounts' ); ?></th>
 					<th><?php esc_html_e( 'Manage', 'pmpro-group-accounts' ); ?></th>
 				</tr>
 			</thead>
@@ -75,7 +75,7 @@ function pmprogroupacct_show_group_account_info( $user ) {
 							<?php
 							$manage_group_url = pmpro_url( 'pmprogroupacct_manage_group' );
 							if ( ! empty( $manage_group_url ) ) {
-								echo '<a href="' . esc_url( add_query_arg( 'pmprogroupacct_group_id', $group->id, $manage_group_url ) ) . '">' . esc_html__( 'Manage Children', 'pmpro-group-accounts' ) . '</a>';
+								echo '<a href="' . esc_url( add_query_arg( 'pmprogroupacct_group_id', $group->id, $manage_group_url ) ) . '">' . esc_html__( 'Manage Players', 'pmpro-group-accounts' ) . '</a>';
 							} else {
 								esc_html_e( 'Page not set.', 'pmpro-group-accounts' );
 							}
@@ -99,7 +99,7 @@ function pmprogroupacct_show_group_account_info( $user ) {
 				continue;
 			}
 			?>
-			<h4><?php printf( esc_html__( 'Children for Group #%d', 'pmpro-group-accounts' ), (int) $group->id ); ?></h4>
+			<h4><?php printf( esc_html__( 'Players for Group #%d', 'pmpro-group-accounts' ), (int) $group->id ); ?></h4>
 			<table class="widefat fixed striped">
 				<thead>
 					<tr>

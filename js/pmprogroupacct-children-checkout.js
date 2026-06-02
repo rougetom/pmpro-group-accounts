@@ -1,6 +1,7 @@
 (function ($) {
 	var refreshRequest = null;
 	var refreshTimer = null;
+	var paymentPlanRequest = null;
 	var lastChildCount = null;
 
 	function calculateTotal(count, basePrice, pricingTiers) {
@@ -55,16 +56,42 @@
 		$('#pmprogroupacct_average_price').text(formatAverage(average));
 	}
 
-	function moveCheckoutPricing() {
-		var $pricing = $('#pmpro_pricing_fields');
-		var $children = $('#pmprogroupacct_children_container');
-
-		if (!$pricing.length || !$children.length || $pricing.data('pmprogroupacctMoved')) {
+	function appendSectionToPricingArea($wrapper, $element, beforeAppend) {
+		if (!$element.length || $wrapper[0].contains($element[0])) {
 			return;
 		}
 
-		$pricing.detach().insertAfter($children).addClass('pmprogroupacct-checkout-pricing');
-		$pricing.data('pmprogroupacctMoved', true);
+		if (typeof beforeAppend === 'function') {
+			beforeAppend($element);
+		}
+
+		$wrapper.append($element.detach());
+	}
+
+	function moveCheckoutSections() {
+		var $children = $('#pmprogroupacct_children_container');
+		if (!$children.length) {
+			return;
+		}
+
+		var $wrapper = $('#pmprogroupacct_checkout_pricing_area');
+		if (!$wrapper.length) {
+			$wrapper = $('<div id="pmprogroupacct_checkout_pricing_area" class="pmprogroupacct-checkout-pricing-area"></div>');
+			$wrapper.insertAfter($children);
+		}
+
+		appendSectionToPricingArea($wrapper, $('#pmpro_pricing_fields').first(), function ($pricing) {
+			$pricing.addClass('pmprogroupacct-checkout-pricing');
+		});
+		appendSectionToPricingArea($wrapper, $('#pmprogroupacct_payment_plan_options').first());
+		appendSectionToPricingArea($wrapper, $('#pmprogroupacct_payment_plan_area').first());
+	}
+
+	function removeTopPaymentPlanSections() {
+		$('#pmpro_form')
+			.find('.pmprogroupacct-payment-plan-options, .pmprogroupacct-payment-plan-area')
+			.not('#pmprogroupacct_checkout_pricing_area .pmprogroupacct-payment-plan-options, #pmprogroupacct_checkout_pricing_area .pmprogroupacct-payment-plan-area')
+			.remove();
 	}
 
 	function updateCheckoutPricing() {
@@ -103,6 +130,44 @@
 					$expiration.remove();
 				}
 			}
+
+			if (data.per_player_formatted) {
+				$('#pmprogroupacct_average_price').text(data.per_player_formatted);
+			}
+
+			$(document).trigger('pmprogroupacct_checkout_pricing_updated', [data]);
+		});
+	}
+
+	function updatePaymentPlan() {
+		if (typeof pmprogroupacctCheckout === 'undefined' || !pmprogroupacctCheckout.paymentPlanUrl) {
+			return;
+		}
+
+		if (paymentPlanRequest && paymentPlanRequest.readyState !== 4) {
+			paymentPlanRequest.abort();
+		}
+
+		paymentPlanRequest = $.post(
+			pmprogroupacctCheckout.paymentPlanUrl,
+			typeof pmpro_getCheckoutFormDataForCheckoutLevels === 'function'
+				? pmpro_getCheckoutFormDataForCheckoutLevels()
+				: { pmprogroupacct_children_count: getChildCount() }
+		).done(function (response) {
+			if (!response.success || !response.data || !response.data.html) {
+				return;
+			}
+
+			var $wrapper = $('#pmprogroupacct_checkout_pricing_area');
+			if (!$wrapper.length) {
+				return;
+			}
+
+			$wrapper.find('#pmprogroupacct_payment_plan_options, #pmprogroupacct_payment_plan_area').remove();
+			removeTopPaymentPlanSections();
+			$wrapper.append(response.data.html);
+			moveCheckoutSections();
+			$(document).trigger('pmprogroupacct_payment_plan_updated');
 		});
 	}
 
@@ -145,6 +210,7 @@
 		if (count === lastChildCount) {
 			updateAverage();
 			updateCheckoutPricing();
+			updatePaymentPlan();
 			return;
 		}
 
@@ -152,6 +218,7 @@
 		refreshChildFields(count);
 		updateAverage();
 		updateCheckoutPricing();
+		updatePaymentPlan();
 	}
 
 	$(document).ready(function () {
@@ -159,14 +226,21 @@
 			return;
 		}
 
-		moveCheckoutPricing();
+		moveCheckoutSections();
+		removeTopPaymentPlanSections();
 		lastChildCount = getChildCount();
 		updateAverage();
 		updateCheckoutPricing();
+		updatePaymentPlan();
 
-		$(document).on('change', '#pmprogroupacct_children_count', function () {
+		$(document).on('change input', '#pmprogroupacct_children_count', function () {
 			window.clearTimeout(refreshTimer);
 			refreshTimer = window.setTimeout(handleChildCountChange, 250);
+		});
+
+		$(document).on('pmprogroupacct_children_updated', function () {
+			moveCheckoutSections();
+			removeTopPaymentPlanSections();
 		});
 
 		$(document).on('change', '.pmpro_alter_price', function () {
@@ -174,6 +248,7 @@
 				return;
 			}
 			updateCheckoutPricing();
+			updatePaymentPlan();
 		});
 	});
 })(jQuery);

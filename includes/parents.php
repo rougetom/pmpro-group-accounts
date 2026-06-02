@@ -6,6 +6,98 @@
  */
 
 
+
+function pmprogroupacct_is_multi_child_checkout( $level = null ) {
+	if ( null === $level ) {
+		$level = pmpro_getLevelAtCheckout();
+	}
+
+	return ! empty( $level->id ) && pmprogroupacct_level_is_multi_child_parent( $level->id );
+}
+
+
+function pmprogroupacct_capture_payment_options_start() {
+	if ( pmprogroupacct_is_multi_child_checkout() ) {
+		ob_start();
+	}
+}
+add_action( 'pmpro_checkout_after_level_cost', 'pmprogroupacct_capture_payment_options_start', 1 );
+
+function pmprogroupacct_capture_payment_options_end( $level ) {
+	if ( ! pmprogroupacct_is_multi_child_checkout( $level ) ) {
+		return;
+	}
+
+	$html = ob_get_clean();
+	if ( '' === trim( $html ) ) {
+		return;
+	}
+
+	echo '<div id="pmprogroupacct_payment_plan_options" class="pmprogroupacct-payment-plan-options">' . $html . '</div>';
+}
+add_action( 'pmpro_checkout_after_level_cost', 'pmprogroupacct_capture_payment_options_end', 999, 1 );
+
+function pmprogroupacct_capture_payment_plan_start() {
+	if ( pmprogroupacct_is_multi_child_checkout() ) {
+		ob_start();
+	}
+}
+add_action( 'pmpro_checkout_after_pricing_fields', 'pmprogroupacct_capture_payment_plan_start', 1 );
+
+function pmprogroupacct_capture_payment_plan_end( $level ) {
+	if ( ! pmprogroupacct_is_multi_child_checkout( $level ) ) {
+		return;
+	}
+
+	$html = ob_get_clean();
+	if ( '' === trim( $html ) ) {
+		return;
+	}
+
+	echo '<div id="pmprogroupacct_payment_plan_area" class="pmprogroupacct-payment-plan-area">' . $html . '</div>';
+}
+add_action( 'pmpro_checkout_after_pricing_fields', 'pmprogroupacct_capture_payment_plan_end', 999, 1 );
+
+function pmprogroupacct_ajax_render_payment_plan() {
+	foreach ( $_POST as $key => $value ) {
+		if ( is_scalar( $value ) ) {
+			$_REQUEST[ $key ] = wp_unslash( $value );
+		}
+	}
+
+	$level = pmpro_getLevelAtCheckout();
+	if ( empty( $level->id ) || ! pmprogroupacct_level_is_multi_child_parent( $level->id ) ) {
+		wp_send_json_error();
+	}
+
+	remove_action( 'pmpro_checkout_after_level_cost', 'pmprogroupacct_capture_payment_options_start', 1 );
+	remove_action( 'pmpro_checkout_after_level_cost', 'pmprogroupacct_capture_payment_options_end', 999 );
+	remove_action( 'pmpro_checkout_after_pricing_fields', 'pmprogroupacct_capture_payment_plan_start', 1 );
+	remove_action( 'pmpro_checkout_after_pricing_fields', 'pmprogroupacct_capture_payment_plan_end', 999 );
+
+	$checkout_level = apply_filters( 'pmpro_checkout_level', $level );
+
+	ob_start();
+	do_action( 'pmpro_checkout_after_level_cost', $checkout_level );
+	$options_html = ob_get_clean();
+
+	ob_start();
+	do_action( 'pmpro_checkout_after_pricing_fields', $checkout_level );
+	$plan_html = ob_get_clean();
+
+	$html = '';
+	if ( '' !== trim( $options_html ) ) {
+		$html .= '<div id="pmprogroupacct_payment_plan_options" class="pmprogroupacct-payment-plan-options">' . $options_html . '</div>';
+	}
+	if ( '' !== trim( $plan_html ) ) {
+		$html .= '<div id="pmprogroupacct_payment_plan_area" class="pmprogroupacct-payment-plan-area">' . $plan_html . '</div>';
+	}
+
+	wp_send_json_success( array( 'html' => $html ) );
+}
+add_action( 'wp_ajax_pmprogroupacct_render_payment_plan', 'pmprogroupacct_ajax_render_payment_plan' );
+add_action( 'wp_ajax_nopriv_pmprogroupacct_render_payment_plan', 'pmprogroupacct_ajax_render_payment_plan' );
+
 /**
  * Merge REST checkout_level params into $_REQUEST for live pricing updates.
  */
@@ -40,6 +132,14 @@ function pmprogroupacct_rest_checkout_level_add_cost_html( $response, $server, $
 	$level = is_object( $data ) ? $data : (object) $data;
 	if ( function_exists( 'pmpro_getLevelCost' ) ) {
 		$data = (array) $data;
+		$settings = pmprogroupacct_normalize_settings( pmprogroupacct_get_settings_for_level( $level->id ) );
+		$player_count = pmprogroupacct_get_requested_child_count( $settings );
+		$pricing = pmprogroupacct_calculate_child_total( $settings, $player_count, (float) $level->initial_payment );
+		$data['player_count'] = $player_count;
+		$data['per_player_formatted'] = pmprogroupacct_format_price_amount( $pricing['average'] );
+		$data['total_formatted'] = function_exists( 'pmpro_formatPrice' ) ? pmpro_formatPrice( $pricing['total'] ) : pmprogroupacct_format_price_amount( $pricing['total'] );
+		$data['initial_payment_formatted'] = function_exists( 'pmpro_formatPrice' ) ? pmpro_formatPrice( $level->initial_payment ) : pmprogroupacct_format_price_amount( $level->initial_payment );
+		$data['billing_amount_formatted'] = function_exists( 'pmpro_formatPrice' ) ? pmpro_formatPrice( $level->billing_amount ) : pmprogroupacct_format_price_amount( $level->billing_amount );
 		$data['level_cost_html'] = wp_kses_post( wpautop( pmpro_getLevelCost( $level ) ) );
 		if ( function_exists( 'pmpro_getLevelExpiration' ) ) {
 			$expiration = pmpro_getLevelExpiration( $level );
@@ -68,19 +168,19 @@ function pmprogroupacct_pmpro_checkout_boxes_parent() {
 		<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_card' ) ); ?>">
 			<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_card_content' ) ); ?>">
 				<legend class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_legend' ) ); ?>">
-					<h2 class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_heading pmpro_font-large' ) ); ?>"><?php esc_html_e( 'Children on Membership', 'pmpro-group-accounts' ); ?></h2>
+					<h2 class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_heading pmpro_font-large' ) ); ?>"><?php esc_html_e( 'Players on Membership', 'pmpro-group-accounts' ); ?></h2>
 				</legend>
 				<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_fields' ) ); ?>">
 					<?php if ( $fixed_count ) : ?>
 						<input type="hidden" name="pmprogroupacct_children_count" id="pmprogroupacct_children_count" value="<?php echo esc_attr( $settings['min_children'] ); ?>" />
 						<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field' ) ); ?>">
-							<p><?php printf( esc_html( _n( 'This membership includes %s child.', 'This membership includes %s children.', $settings['min_children'], 'pmpro-group-accounts' ) ), esc_html( number_format_i18n( $settings['min_children'] ) ) ); ?></p>
+							<p><?php printf( esc_html( _n( 'This membership includes %s player.', 'This membership includes %s players.', $settings['min_children'], 'pmpro-group-accounts' ) ), esc_html( number_format_i18n( $settings['min_children'] ) ) ); ?></p>
 						</div>
 					<?php else : ?>
 						<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field' ) ); ?>">
-							<label for="pmprogroupacct_children_count" class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>"><?php esc_html_e( 'Number of Children', 'pmpro-group-accounts' ); ?></label>
+							<label for="pmprogroupacct_children_count" class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>"><?php esc_html_e( 'Number of Players', 'pmpro-group-accounts' ); ?></label>
 							<input class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_input pmpro_form_input-number pmpro_alter_price', 'pmprogroupacct_children_count' ) ); ?>" id="pmprogroupacct_children_count" name="pmprogroupacct_children_count" type="number" min="<?php echo esc_attr( $settings['min_children'] ); ?>" max="<?php echo esc_attr( $settings['max_children'] ); ?>" value="<?php echo esc_attr( $child_count ); ?>" />
-							<p class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_hint' ) ); ?>"><?php printf( esc_html__( 'Choose between %1$s and %2$s children.', 'pmpro-group-accounts' ), esc_html( number_format_i18n( $settings['min_children'] ) ), esc_html( number_format_i18n( $settings['max_children'] ) ) ); ?></p>
+							<p class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_hint' ) ); ?>"><?php printf( esc_html__( 'Choose between %1$s and %2$s players.', 'pmpro-group-accounts' ), esc_html( number_format_i18n( $settings['min_children'] ) ), esc_html( number_format_i18n( $settings['max_children'] ) ) ); ?></p>
 						</div>
 					<?php endif; ?>
 				</div>
@@ -100,7 +200,7 @@ function pmprogroupacct_pmpro_checkout_boxes_parent() {
 							<strong><?php esc_html_e( 'Per player:', 'pmpro-group-accounts' ); ?></strong>
 							<span id="pmprogroupacct_average_price"><?php echo esc_html( pmprogroupacct_format_price_amount( $pricing['average'] ) ); ?></span>
 						</p>
-						<p class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_hint' ) ); ?>"><?php esc_html_e( 'The first child pays the membership level price. Additional children use discounted tier pricing.', 'pmpro-group-accounts' ); ?></p>
+						<p class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_hint' ) ); ?>"><?php esc_html_e( 'The first player pays the membership level price. Additional players use discounted tier pricing.', 'pmpro-group-accounts' ); ?></p>
 					</div>
 				</div>
 			</div>
@@ -128,18 +228,18 @@ function pmprogroupacct_pmpro_registration_checks_parent( $continue_checkout ) {
 	}
 
 	if ( $child_count < $settings['min_children'] || $child_count > $settings['max_children'] ) {
-		pmpro_setMessage( esc_html__( 'Invalid number of children selected.', 'pmpro-group-accounts' ), 'pmpro_error' );
+		pmpro_setMessage( esc_html__( 'Invalid number of players selected.', 'pmpro-group-accounts' ), 'pmpro_error' );
 		return false;
 	}
 
 	for ( $i = 0; $i < $child_count; $i++ ) {
 		$profile = pmprogroupacct_parse_child_profile_from_request( 'pmprogroupacct_children[' . $i . ']' );
 		if ( empty( $profile ) || empty( $profile['first_name'] ) || empty( $profile['last_name'] ) ) {
-			pmpro_setMessage( sprintf( esc_html__( 'Please complete all required details for child %d.', 'pmpro-group-accounts' ), $i + 1 ), 'pmpro_error' );
+			pmpro_setMessage( sprintf( esc_html__( 'Please complete all required details for player %d.', 'pmpro-group-accounts' ), $i + 1 ), 'pmpro_error' );
 			return false;
 		}
 		if ( empty( $profile['team_post_id'] ) || ! pmprogroupacct_validate_team_post_id( $profile['team_post_id'] ) ) {
-			pmpro_setMessage( sprintf( esc_html__( 'Please select a valid team for child %d.', 'pmpro-group-accounts' ), $i + 1 ), 'pmpro_error' );
+			pmpro_setMessage( sprintf( esc_html__( 'Please select a valid team for player %d.', 'pmpro-group-accounts' ), $i + 1 ), 'pmpro_error' );
 			return false;
 		}
 
@@ -154,7 +254,7 @@ function pmprogroupacct_pmpro_registration_checks_parent( $continue_checkout ) {
 	if ( ! empty( $existing_group ) ) {
 		$member_count = $existing_group->get_active_members( true );
 		if ( $child_count < $member_count ) {
-			pmpro_setMessage( sprintf( esc_html__( 'There are currently %s children on your membership. You must purchase at least that many child slots.', 'pmpro-group-accounts' ), esc_html( number_format_i18n( (int) $member_count ) ) ), 'pmpro_error' );
+			pmpro_setMessage( sprintf( esc_html__( 'There are currently %s players on your membership. You must purchase at least that many player slots.', 'pmpro-group-accounts' ), esc_html( number_format_i18n( (int) $member_count ) ) ), 'pmpro_error' );
 			return false;
 		}
 	}
@@ -262,17 +362,17 @@ function pmprogroupacct_pmpro_invoice_bullets_bottom_parent( $invoice ) {
 	$active_count = $group->get_active_members( true );
 	?>
 	<li>
-		<strong><?php esc_html_e( 'Children on Membership', 'pmpro-group-accounts' ); ?></strong>:
+		<strong><?php esc_html_e( 'Players on Membership', 'pmpro-group-accounts' ); ?></strong>:
 		<?php
 		printf(
-			esc_html__( '%1$s of %2$s children registered.', 'pmpro-group-accounts' ),
+			esc_html__( '%1$s of %2$s players registered.', 'pmpro-group-accounts' ),
 			esc_html( number_format_i18n( (int) $active_count ) ),
 			esc_html( number_format_i18n( (int) $group->group_total_seats ) )
 		);
 
 		$manage_group_url = pmpro_url( 'pmprogroupacct_manage_group' );
 		if ( ! empty( $manage_group_url ) ) {
-			echo ' <a href="' . esc_url( add_query_arg( 'pmprogroupacct_group_id', $group->id, $manage_group_url ) ) . '">' . esc_html__( 'Manage Children', 'pmpro-group-accounts' ) . '</a>';
+			echo ' <a href="' . esc_url( add_query_arg( 'pmprogroupacct_group_id', $group->id, $manage_group_url ) ) . '">' . esc_html__( 'Manage Players', 'pmpro-group-accounts' ) . '</a>';
 		}
 		?>
 	</li>
@@ -302,6 +402,7 @@ function pmprogroupacct_checkout_pricing_data() {
 			'currencySymbol'=> pmprogroupacct_get_currency_symbol(),
 			'decimals'      => pmprogroupacct_get_currency_decimals(),
 			'checkoutLevelUrl'=> esc_url_raw( rest_url( 'pmpro/v1/checkout_level' ) ),
+			'paymentPlanUrl'=> admin_url( 'admin-ajax.php?action=pmprogroupacct_render_payment_plan' ),
 			'childFieldsUrl'=> admin_url( 'admin-ajax.php?action=pmprogroupacct_render_child_fields' ),
 		)
 	);

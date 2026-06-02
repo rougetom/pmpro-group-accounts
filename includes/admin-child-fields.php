@@ -12,8 +12,8 @@ function pmprogroupacct_add_child_fields_admin_menu() {
 
 	add_submenu_page(
 		'pmpro-membershiplevels',
-		__( 'Child Custom Fields', 'pmpro-group-accounts' ),
-		__( 'Child Custom Fields', 'pmpro-group-accounts' ),
+		__( 'Player Custom Fields', 'pmpro-group-accounts' ),
+		__( 'Player Custom Fields', 'pmpro-group-accounts' ),
 		pmpro_get_edit_member_capability(),
 		'pmprogroupacct-child-fields',
 		'pmprogroupacct_admin_child_fields_page'
@@ -40,15 +40,15 @@ function pmprogroupacct_admin_child_fields_page() {
 		}
 
 		pmprogroupacct_save_child_field_definitions( $fields );
-		echo '<div class="updated notice is-dismissible"><p>' . esc_html__( 'Child custom fields saved.', 'pmpro-group-accounts' ) . '</p></div>';
+		echo '<div class="updated notice is-dismissible"><p>' . esc_html__( 'Player custom fields saved.', 'pmpro-group-accounts' ) . '</p></div>';
 	}
 
 	$fields = pmprogroupacct_get_child_field_definitions();
 	$types  = pmprogroupacct_get_child_field_types();
 	?>
 	<div class="wrap">
-		<h1><?php esc_html_e( 'Child Custom Fields', 'pmpro-group-accounts' ); ?></h1>
-		<p><?php esc_html_e( 'Define additional fields to collect for each child. Choose which fields appear on checkout and which are required.', 'pmpro-group-accounts' ); ?></p>
+		<h1><?php esc_html_e( 'Player Custom Fields', 'pmpro-group-accounts' ); ?></h1>
+		<p><?php esc_html_e( 'Define additional fields to collect for each player. Choose which fields appear on checkout and which are required.', 'pmpro-group-accounts' ); ?></p>
 
 		<form method="post">
 			<?php wp_nonce_field( 'pmprogroupacct_save_child_fields', 'pmprogroupacct_save_child_fields_nonce' ); ?>
