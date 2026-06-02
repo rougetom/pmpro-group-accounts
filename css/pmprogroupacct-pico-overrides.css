@@ -100,3 +100,50 @@
 	box-shadow: none;
 	--pico-form-element-spacing-vertical: 0.75rem;
 }
+
+/**
+ * Pico's custom checkbox icon uses a white stroke, which disappears on light
+ * card backgrounds. Use native checkboxes with visible borders instead.
+ */
+.pico.pmpro-pico-scope input[type="checkbox"]:not([role="switch"]) {
+	appearance: auto;
+	-webkit-appearance: checkbox;
+	-moz-appearance: checkbox;
+	width: 1.125rem;
+	height: 1.125rem;
+	min-width: 1.125rem;
+	min-height: 1.125rem;
+	margin: 0 0.5rem 0 0;
+	padding: 0;
+	border: 1px solid #767676;
+	background-color: #fff;
+	background-image: none !important;
+	box-shadow: none;
+	cursor: pointer;
+	vertical-align: middle;
+	position: relative;
+	opacity: 1;
+	pointer-events: auto;
+	accent-color: var(--pico-primary, #0172ad);
+}
+
+.pico.pmpro-pico-scope input[type="checkbox"]:not([role="switch"]):checked {
+	background-color: #fff;
+	border-color: #767676;
+}
+
+.pico.pmpro-pico-scope label:has(> input[type="checkbox"]),
+.pico.pmpro-pico-scope .pmpro_form_label-inline {
+	display: inline-flex;
+	align-items: flex-start;
+	gap: 0.5rem;
+	width: auto;
+	max-width: 100%;
+	cursor: pointer;
+}
+
+.pico.pmpro-pico-scope label:has(> input[type="checkbox"]) input[type="checkbox"],
+.pico.pmpro-pico-scope .pmpro_form_label-inline input[type="checkbox"] {
+	margin-top: 0.15rem;
+	flex-shrink: 0;
+}
