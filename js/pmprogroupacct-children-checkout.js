@@ -1,4 +1,8 @@
-jQuery(document).ready(function ($) {
+(function ($) {
+	var refreshRequest = null;
+	var refreshTimer = null;
+	var lastChildCount = null;
+
 	function calculateTotal(count, basePrice, pricingTiers) {
 		var total = 0;
 		for (var i = 1; i <= count; i++) {
@@ -25,21 +29,81 @@ jQuery(document).ready(function ($) {
 		return symbol + amount.toFixed(decimals);
 	}
 
+	function getChildCount() {
+		var $field = $('#pmprogroupacct_children_count');
+		var count = parseInt($field.val(), 10);
+
+		if (typeof pmprogroupacctCheckout !== 'undefined') {
+			count = Math.max(
+				pmprogroupacctCheckout.minChildren,
+				Math.min(pmprogroupacctCheckout.maxChildren, count || pmprogroupacctCheckout.minChildren)
+			);
+			$field.val(count);
+		}
+
+		return count;
+	}
+
 	function updateAverage() {
 		if (typeof pmprogroupacctCheckout === 'undefined') {
 			return;
 		}
 
-		var count = parseInt($('#pmprogroupacct_children_count').val(), 10) || pmprogroupacctCheckout.minChildren;
+		var count = getChildCount();
 		var total = calculateTotal(count, pmprogroupacctCheckout.basePrice, pmprogroupacctCheckout.pricingTiers);
 		var average = count > 0 ? total / count : 0;
 		$('#pmprogroupacct_average_price').text(formatAverage(average));
 	}
 
-	function triggerPmproPriceUpdate() {
-		if (typeof pmpro_updatePrice === 'function') {
-			pmpro_updatePrice();
+	function moveCheckoutPricing() {
+		var $pricing = $('#pmpro_pricing_fields');
+		var $children = $('#pmprogroupacct_children_container');
+
+		if (!$pricing.length || !$children.length || $pricing.data('pmprogroupacctMoved')) {
+			return;
 		}
+
+		$pricing.detach().insertAfter($children).addClass('pmprogroupacct-checkout-pricing');
+		$pricing.data('pmprogroupacctMoved', true);
+	}
+
+	function updateCheckoutPricing() {
+		if (
+			typeof pmprogroupacctCheckout === 'undefined' ||
+			typeof pmpro_getCheckoutFormDataForCheckoutLevels !== 'function' ||
+			!pmprogroupacctCheckout.checkoutLevelUrl
+		) {
+			return;
+		}
+
+		$.ajax({
+			url: pmprogroupacctCheckout.checkoutLevelUrl,
+			dataType: 'json',
+			data: pmpro_getCheckoutFormDataForCheckoutLevels(),
+		}).done(function (data) {
+			if (!data) {
+				return;
+			}
+
+			if (data.level_cost_html) {
+				$('#pmpro_level_cost .pmpro_level_cost_text').html(data.level_cost_html);
+			}
+
+			if (typeof data.level_expiration_html !== 'undefined') {
+				var $expiration = $('#pmpro_level_cost .pmpro_level_expiration_text');
+				if (data.level_expiration_html) {
+					if ($expiration.length) {
+						$expiration.html(data.level_expiration_html);
+					} else {
+						$('#pmpro_level_cost').append(
+							$('<div>', { class: 'pmpro_level_expiration_text', html: data.level_expiration_html })
+						);
+					}
+				} else {
+					$expiration.remove();
+				}
+			}
+		});
 	}
 
 	function refreshChildFields(count) {
@@ -47,18 +111,22 @@ jQuery(document).ready(function ($) {
 			return;
 		}
 
+		if (refreshRequest && refreshRequest.readyState !== 4) {
+			refreshRequest.abort();
+		}
+
 		var $container = $('#pmprogroupacct_children_container');
 		$container.empty();
 
-		var pending = count;
-		if (pending === 0) {
+		if (count <= 0) {
 			$(document).trigger('pmprogroupacct_children_updated');
 			return;
 		}
 
+		var pending = count;
 		for (var i = 0; i < count; i++) {
 			(function (index) {
-				$.post(pmprogroupacctCheckout.childFieldsUrl, { index: index }).done(function (response) {
+				refreshRequest = $.post(pmprogroupacctCheckout.childFieldsUrl, { index: index }).done(function (response) {
 					if (response.success && response.data.html) {
 						$container.append(response.data.html);
 					}
@@ -71,16 +139,41 @@ jQuery(document).ready(function ($) {
 		}
 	}
 
-	$(document).on('change keyup', '#pmprogroupacct_children_count', function () {
-		var count = parseInt($(this).val(), 10);
-		if (typeof pmprogroupacctCheckout !== 'undefined') {
-			count = Math.max(pmprogroupacctCheckout.minChildren, Math.min(pmprogroupacctCheckout.maxChildren, count || pmprogroupacctCheckout.minChildren));
-			$(this).val(count);
-			refreshChildFields(count);
-		}
-		updateAverage();
-		triggerPmproPriceUpdate();
-	});
+	function handleChildCountChange() {
+		var count = getChildCount();
 
-	updateAverage();
-});
+		if (count === lastChildCount) {
+			updateAverage();
+			updateCheckoutPricing();
+			return;
+		}
+
+		lastChildCount = count;
+		refreshChildFields(count);
+		updateAverage();
+		updateCheckoutPricing();
+	}
+
+	$(document).ready(function () {
+		if (typeof pmprogroupacctCheckout === 'undefined') {
+			return;
+		}
+
+		moveCheckoutPricing();
+		lastChildCount = getChildCount();
+		updateAverage();
+		updateCheckoutPricing();
+
+		$(document).on('change', '#pmprogroupacct_children_count', function () {
+			window.clearTimeout(refreshTimer);
+			refreshTimer = window.setTimeout(handleChildCountChange, 250);
+		});
+
+		$(document).on('change', '.pmpro_alter_price', function () {
+			if ($(this).is('#pmprogroupacct_children_count')) {
+				return;
+			}
+			updateCheckoutPricing();
+		});
+	});
+})(jQuery);

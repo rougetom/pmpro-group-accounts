@@ -6,108 +6,52 @@
  */
 
 
-function pmprogroupacct_is_multi_child_checkout( $level = null ) {
-	if ( null === $level ) {
-		$level = pmpro_getLevelAtCheckout();
+/**
+ * Merge REST checkout_level params into $_REQUEST for live pricing updates.
+ */
+function pmprogroupacct_rest_checkout_level_merge_request( $response, $handler, $request ) {
+	if ( '/pmpro/v1/checkout_level' !== $request->get_route() ) {
+		return $response;
 	}
 
-	return ! empty( $level->id ) && pmprogroupacct_level_is_multi_child_parent( $level->id );
-}
-
-function pmprogroupacct_hide_default_checkout_pricing_fields( $include ) {
-	if ( pmprogroupacct_is_multi_child_checkout() ) {
-		return false;
+	foreach ( $request->get_params() as $key => $value ) {
+		if ( is_scalar( $value ) ) {
+			$_REQUEST[ $key ] = wp_unslash( $value );
+		}
 	}
 
-	return $include;
+	return $response;
 }
-add_filter( 'pmpro_include_pricing_fields', 'pmprogroupacct_hide_default_checkout_pricing_fields' );
+add_filter( 'rest_request_before_callbacks', 'pmprogroupacct_rest_checkout_level_merge_request', 10, 3 );
 
-function pmprogroupacct_render_checkout_pricing_fields( $level ) {
-	global $discount_code, $pmpro_show_discount_code, $pmpro_review, $current_user;
-
-	if ( ! pmprogroupacct_is_multi_child_checkout( $level ) ) {
-		return;
+/**
+ * Include formatted cost HTML in checkout_level REST responses.
+ */
+function pmprogroupacct_rest_checkout_level_add_cost_html( $response, $server, $request ) {
+	if ( '/pmpro/v1/checkout_level' !== $request->get_route() || ! $response instanceof WP_REST_Response ) {
+		return $response;
 	}
 
-	$checkout_level = apply_filters( 'pmpro_checkout_level', $level );
-	?>
-	<div id="pmpro_pricing_fields" class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_card pmprogroupacct-checkout-pricing', 'pmpro_pricing_fields' ) ); ?>">
-		<h2 class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_card_title pmpro_font-large' ) ); ?>"><?php esc_html_e( 'Membership Information', 'paid-memberships-pro' ); ?></h2>
-		<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_card_content' ) ); ?>">
-			<p class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_level_name_text' ) ); ?>">
-				<?php
-				printf(
-					esc_html__( 'You have selected the %s membership level.', 'paid-memberships-pro' ),
-					'<strong>' . esc_html( $checkout_level->name ) . '</strong>'
-				);
-				?>
-			</p>
-			<?php
-			$level_description = apply_filters( 'pmpro_level_description', $checkout_level->description, $checkout_level );
-			if ( ! empty( $level_description ) ) {
-				?>
-				<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_level_description_text' ) ); ?>">
-					<?php echo wp_kses_post( $level_description ); ?>
-				</div>
-				<?php
-			}
-			?>
-			<div id="pmpro_level_cost">
-				<?php if ( ! empty( $discount_code ) && function_exists( 'pmpro_checkDiscountCode' ) && pmpro_checkDiscountCode( $discount_code ) ) : ?>
-					<p class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_level_discount_applied' ) ); ?>">
-						<?php
-						echo sprintf(
-							esc_html__( 'The %s code has been applied to your order.', 'paid-memberships-pro' ),
-							'<span class="' . esc_attr( pmpro_get_element_class( 'pmpro_tag pmpro_tag-discount-code', 'pmpro_tag-discount-code' ) ) . '">' . esc_html( $discount_code ) . '</span>'
-						);
-						?>
-					</p>
-				<?php endif; ?>
-				<?php
-				$level_cost_text = function_exists( 'pmpro_getLevelCost' ) ? pmpro_getLevelCost( $checkout_level ) : '';
-				if ( ! empty( $level_cost_text ) ) {
-					?>
-					<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_level_cost_text' ) ); ?>">
-						<?php echo wp_kses_post( wpautop( $level_cost_text ) ); ?>
-					</div>
-					<?php
-				}
+	$data = $response->get_data();
+	if ( empty( $data ) ) {
+		return $response;
+	}
 
-				$level_expiration_text = function_exists( 'pmpro_getLevelExpiration' ) ? pmpro_getLevelExpiration( $checkout_level ) : '';
-				if ( ! empty( $level_expiration_text ) ) {
-					?>
-					<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_level_expiration_text' ) ); ?>">
-						<?php echo wp_kses_post( wpautop( $level_expiration_text ) ); ?>
-					</div>
-					<?php
-				}
-				?>
-			</div>
-			<?php do_action( 'pmpro_checkout_after_level_cost', $checkout_level ); ?>
-		</div>
-		<?php if ( ! empty( $pmpro_show_discount_code ) ) : ?>
-			<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_card_actions' ) ); ?>">
-				<?php if ( ! empty( $discount_code ) && empty( $pmpro_review ) ) : ?>
-					<span id="other_discount_code_p"><button type="button" id="other_discount_code_toggle"><?php esc_html_e( 'Click here to change your discount code', 'paid-memberships-pro' ); ?></button></span>
-				<?php elseif ( empty( $pmpro_review ) ) : ?>
-					<span id="other_discount_code_p"><?php esc_html_e( 'Do you have a discount code?', 'paid-memberships-pro' ); ?> <button type="button" id="other_discount_code_toggle"><?php esc_html_e( 'Click here to enter your discount code', 'paid-memberships-pro' ); ?></button></span>
-				<?php elseif ( ! empty( $pmpro_review ) && ! empty( $discount_code ) ) : ?>
-					<span><strong><?php esc_html_e( 'Discount Code', 'paid-memberships-pro' ); ?>:</strong> <?php echo esc_html( $discount_code ); ?></span>
-				<?php endif; ?>
-				<div id="other_discount_code_fields" class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field pmpro_form_field-text' ) ); ?>" style="display: none;">
-					<label for="pmpro_other_discount_code" class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>"><?php esc_html_e( 'Discount Code', 'paid-memberships-pro' ); ?></label>
-					<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_fields-inline' ) ); ?>">
-						<input id="pmpro_other_discount_code" name="pmpro_other_discount_code" type="text" class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_input pmpro_form_input-text pmpro_alter_price', 'other_discount_code' ) ); ?>" value="<?php echo esc_attr( $discount_code ); ?>" />
-						<input aria-label="<?php esc_attr_e( 'Apply discount code', 'paid-memberships-pro' ); ?>" type="button" name="other_discount_code_button" id="other_discount_code_button" value="<?php esc_attr_e( 'Apply', 'paid-memberships-pro' ); ?>" class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_btn pmpro_btn-submit-discount-code', 'other_discount_code_button' ) ); ?>" />
-					</div>
-				</div>
-			</div>
-		<?php endif; ?>
-	</div>
-	<?php
-	do_action( 'pmpro_checkout_after_pricing_fields', $checkout_level );
+	$level = is_object( $data ) ? $data : (object) $data;
+	if ( function_exists( 'pmpro_getLevelCost' ) ) {
+		$data = (array) $data;
+		$data['level_cost_html'] = wp_kses_post( wpautop( pmpro_getLevelCost( $level ) ) );
+		if ( function_exists( 'pmpro_getLevelExpiration' ) ) {
+			$expiration = pmpro_getLevelExpiration( $level );
+			$data['level_expiration_html'] = $expiration ? wp_kses_post( wpautop( $expiration ) ) : '';
+		}
+		$response->set_data( $data );
+	}
+
+	return $response;
 }
+add_filter( 'rest_post_dispatch', 'pmprogroupacct_rest_checkout_level_add_cost_html', 10, 3 );
+
 
 function pmprogroupacct_pmpro_checkout_boxes_parent() {
 	$level = pmpro_getLevelAtCheckout();
@@ -149,7 +93,6 @@ function pmprogroupacct_pmpro_checkout_boxes_parent() {
 					?>
 				</div>
 
-				<?php pmprogroupacct_render_checkout_pricing_fields( $level ); ?>
 
 				<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_fields' ) ); ?>">
 					<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field pmprogroupacct-pricing-summary' ) ); ?>" id="pmprogroupacct_pricing_summary" data-base-price="<?php echo esc_attr( (float) $level->initial_payment ); ?>">
@@ -358,6 +301,7 @@ function pmprogroupacct_checkout_pricing_data() {
 			'pricingTiers'  => $settings['pricing_tiers'],
 			'currencySymbol'=> pmprogroupacct_get_currency_symbol(),
 			'decimals'      => pmprogroupacct_get_currency_decimals(),
+			'checkoutLevelUrl'=> esc_url_raw( rest_url( 'pmpro/v1/checkout_level' ) ),
 			'childFieldsUrl'=> admin_url( 'admin-ajax.php?action=pmprogroupacct_render_child_fields' ),
 		)
 	);

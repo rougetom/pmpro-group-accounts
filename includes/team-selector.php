@@ -15,7 +15,26 @@ defined( 'ABSPATH' ) || exit;
  * @return bool
  */
 function pmprogroupacct_should_render_builtin_team_selector() {
-	return ! class_exists( 'Sandbach\\Frontend\\TeamSelector' );
+	if ( defined( 'SANDBACH_MEMBERSHIPS_VERSION' ) || class_exists( 'Sandbach\\Frontend\\TeamSelector' ) ) {
+		return false;
+	}
+
+	global $wp_filter;
+	if ( isset( $wp_filter['pmprogroupacct_child_fields'] ) ) {
+		foreach ( $wp_filter['pmprogroupacct_child_fields']->callbacks as $callbacks ) {
+			foreach ( $callbacks as $callback ) {
+				$function = $callback['function'];
+				if ( is_array( $function ) && isset( $function[0] ) && is_string( $function[0] ) && false !== stripos( $function[0], 'sandbach' ) ) {
+					return false;
+				}
+				if ( is_string( $function ) && false !== stripos( $function, 'sandbach' ) ) {
+					return false;
+				}
+			}
+		}
+	}
+
+	return (bool) apply_filters( 'pmprogroupacct_use_builtin_team_selector', true );
 }
 
 /**
