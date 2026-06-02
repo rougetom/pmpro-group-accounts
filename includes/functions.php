@@ -291,6 +291,7 @@ function pmprogroupacct_render_segmented_radios( $name, $options, $selected = ''
 			'input_class' => '',
 			'label_class' => 'name',
 			'size'        => 'default',
+			'required'    => false,
 		)
 	);
 
@@ -302,8 +303,9 @@ function pmprogroupacct_render_segmented_radios( $name, $options, $selected = ''
 	ob_start();
 	?>
 	<div class="<?php echo esc_attr( implode( ' ', $wrapper_classes ) ); ?>">
-		<?php foreach ( $options as $value => $label ) : ?>
-			<?php
+		<?php
+		$option_index = 0;
+		foreach ( $options as $value => $label ) :
 			$id = $args['id_prefix'] . '_' . sanitize_key( (string) $value );
 			?>
 			<label for="<?php echo esc_attr( $id ); ?>">
@@ -314,10 +316,13 @@ function pmprogroupacct_render_segmented_radios( $name, $options, $selected = ''
 					value="<?php echo esc_attr( $value ); ?>"
 					class="<?php echo esc_attr( $args['input_class'] ); ?>"
 					<?php checked( (string) $selected, (string) $value ); ?>
+					<?php if ( ! empty( $args['required'] ) && 0 === $option_index ) { echo ' required'; } ?>
 				/>
 				<span class="<?php echo esc_attr( $args['label_class'] ); ?>"><?php echo esc_html( $label ); ?></span>
 			</label>
-			<?php endforeach; ?>
+			<?php
+			$option_index++;
+		endforeach; ?>
 	</div>
 	<?php
 	return ob_get_clean();

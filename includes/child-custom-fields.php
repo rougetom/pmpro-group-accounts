@@ -20,6 +20,7 @@ function pmprogroupacct_get_child_field_types() {
 		'tel'      => __( 'Phone', 'pmpro-group-accounts' ),
 		'date'     => __( 'Date', 'pmpro-group-accounts' ),
 		'select'   => __( 'Select', 'pmpro-group-accounts' ),
+		'radio'    => __( 'Radio', 'pmpro-group-accounts' ),
 		'checkbox' => __( 'Checkbox', 'pmpro-group-accounts' ),
 	);
 }
@@ -127,6 +128,21 @@ function pmprogroupacct_get_child_fields_for_context( $context, $is_admin = fals
  * @param string $options Options string.
  * @return array
  */
+
+/**
+ * Build radio option choices from a newline-separated options string.
+ *
+ * @param string $options Options string.
+ * @return array
+ */
+function pmprogroupacct_get_child_field_radio_options( $options ) {
+	$choices = array();
+	foreach ( array_values( pmprogroupacct_parse_child_field_options( $options ) ) as $label ) {
+		$choices[ $label ] = $label;
+	}
+	return $choices;
+}
+
 function pmprogroupacct_parse_child_field_options( $options ) {
 	$lines   = array_filter( array_map( 'trim', explode( "\n", (string) $options ) ) );
 	$choices = array();
@@ -175,13 +191,21 @@ function pmprogroupacct_render_child_custom_fields( $name_prefix, $values = arra
 			$required    = ( 'checkout' === $context && ! empty( $field['required_checkout'] ) );
 			?>
 			<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field pmprogroupacct_child_custom_field' ) ); ?>">
-				<?php if ( 'checkbox' !== $field['type'] ) : ?>
+				<?php if ( ! in_array( $field['type'], array( 'checkbox', 'radio' ), true ) ) : ?>
 					<label class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>" for="<?php echo esc_attr( $field_id ); ?>">
 						<?php echo esc_html( $field['label'] ); ?>
 						<?php if ( $required ) : ?>
 							<span class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_asterisk' ) ); ?>">*</span>
 						<?php endif; ?>
 					</label>
+					<?php pmprogroupacct_render_child_custom_field_help_text( $field ); ?>
+				<?php elseif ( 'radio' === $field['type'] ) : ?>
+					<span class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>">
+						<?php echo esc_html( $field['label'] ); ?>
+						<?php if ( $required ) : ?>
+							<span class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_asterisk' ) ); ?>">*</span>
+						<?php endif; ?>
+					</span>
 					<?php pmprogroupacct_render_child_custom_field_help_text( $field ); ?>
 				<?php endif; ?>
 				<?php pmprogroupacct_render_child_custom_field_input( $field, $field_id, $field_value, $required ); ?>
@@ -210,6 +234,25 @@ function pmprogroupacct_render_child_custom_field_input( $field, $name, $value, 
 		case 'textarea':
 			?>
 			<textarea class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_input pmpro_form_input-textarea' ) ); ?>" id="<?php echo esc_attr( $name ); ?>" name="<?php echo esc_attr( $name ); ?>"<?php echo $required_attr; ?>><?php echo esc_textarea( $value ); ?></textarea>
+			<?php
+			break;
+		case 'radio':
+			$options = pmprogroupacct_get_child_field_radio_options( $field['options'] );
+			?>
+			<div role="radiogroup" aria-label="<?php echo esc_attr( $field['label'] ); ?>">
+				<?php
+				echo pmprogroupacct_render_segmented_radios(
+					$name,
+					$options,
+					$value,
+					array(
+						'id_prefix'     => sanitize_key( str_replace( array( '[', ']', '_' ), '_', $name ) ),
+						'wrapper_class' => 'radio-wrapper-20 pmprogroupacct-gender-radios',
+						'required'      => $required,
+					)
+				);
+				?>
+			</div>
 			<?php
 			break;
 		case 'select':
@@ -245,7 +288,7 @@ function pmprogroupacct_render_child_custom_field_input( $field, $name, $value, 
 			break;
 	}
 
-	if ( 'checkbox' !== $field['type'] && 'textarea' !== $field['type'] && 'select' !== $field['type'] ) {
+	if ( ! in_array( $field['type'], array( 'checkbox', 'textarea', 'select', 'radio' ), true ) ) {
 		?>
 		<input class="<?php echo esc_attr( $classes ); ?>" type="<?php echo esc_attr( $input_type ); ?>" id="<?php echo esc_attr( $name ); ?>" name="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( $value ); ?>"<?php echo $required_attr; ?> />
 		<?php
@@ -308,6 +351,11 @@ function pmprogroupacct_sanitize_child_custom_meta( $values, $fields ) {
 			case 'checkbox':
 				$sanitized[ $field['key'] ] = ! empty( $value ) ? '1' : '';
 				break;
+			case 'radio':
+				$value = sanitize_text_field( $value );
+				$options = array_keys( pmprogroupacct_get_child_field_radio_options( $field['options'] ) );
+				$sanitized[ $field['key'] ] = in_array( $value, $options, true ) ? $value : '';
+				break;
 			case 'date':
 				$parsed = strtotime( sanitize_text_field( $value ) );
 				$sanitized[ $field['key'] ] = $parsed ? gmdate( 'Y-m-d', $parsed ) : '';
@@ -344,6 +392,20 @@ function pmprogroupacct_validate_child_custom_meta( $values, $context = 'checkou
 					$field['label']
 				)
 			);
+		}
+
+		if ( 'radio' === $field['type'] && ! empty( $value ) ) {
+			$options = array_keys( pmprogroupacct_get_child_field_radio_options( $field['options'] ) );
+			if ( ! in_array( $value, $options, true ) ) {
+				return new WP_Error(
+					'pmprogroupacct_invalid_custom_field',
+					sprintf(
+						/* translators: %s: custom field label */
+						__( 'Please choose a valid option for: %s', 'pmpro-group-accounts' ),
+						$field['label']
+					)
+				);
+			}
 		}
 
 		if ( 'email' === $field['type'] && ! empty( $value ) && ! is_email( $value ) ) {

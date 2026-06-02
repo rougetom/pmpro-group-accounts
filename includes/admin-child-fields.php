@@ -80,7 +80,7 @@ function pmprogroupacct_admin_child_fields_page() {
 						<th><?php esc_html_e( 'Field Key', 'pmpro-group-accounts' ); ?></th>
 						<th><?php esc_html_e( 'Label', 'pmpro-group-accounts' ); ?></th>
 						<th><?php esc_html_e( 'Type', 'pmpro-group-accounts' ); ?></th>
-						<th><?php esc_html_e( 'Select Options', 'pmpro-group-accounts' ); ?></th>
+						<th><?php esc_html_e( 'Select/Radio Options', 'pmpro-group-accounts' ); ?></th>
 						<th><?php esc_html_e( 'Checkout', 'pmpro-group-accounts' ); ?></th>
 						<th><?php esc_html_e( 'Required', 'pmpro-group-accounts' ); ?></th>
 						<th><?php esc_html_e( 'Manage Page', 'pmpro-group-accounts' ); ?></th>
@@ -100,7 +100,7 @@ function pmprogroupacct_admin_child_fields_page() {
 			<p>
 				<button type="button" class="button" id="pmprogroupacct-add-child-field"><?php esc_html_e( 'Add Field', 'pmpro-group-accounts' ); ?></button>
 			</p>
-			<p class="description"><?php esc_html_e( 'Field keys must be unique lowercase identifiers (e.g. medical_notes). Select options: one choice per line.', 'pmpro-group-accounts' ); ?></p>
+			<p class="description"><?php esc_html_e( 'Field keys must be unique lowercase identifiers (e.g. medical_notes). Select and radio options: one choice per line.', 'pmpro-group-accounts' ); ?></p>
 			<p><input type="submit" name="pmprogroupacct_save_child_fields_submit" class="button button-primary" value="<?php esc_attr_e( 'Save Fields', 'pmpro-group-accounts' ); ?>" /></p>
 		</form>
 
