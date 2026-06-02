@@ -20,10 +20,12 @@ include_once( PMPROGROUPACCT_DIR . '/classes/class-pmprogroupacct-group-member.p
 include_once( PMPROGROUPACCT_DIR . '/classes/class-pmprogroupacct-groups-list-table.php' );
 
 include_once( PMPROGROUPACCT_DIR . '/includes/functions.php' );
+include_once( PMPROGROUPACCT_DIR . '/includes/team-selector.php' );
+include_once( PMPROGROUPACCT_DIR . '/includes/child-custom-fields.php' );
+include_once( PMPROGROUPACCT_DIR . '/includes/admin-child-fields.php' );
 include_once( PMPROGROUPACCT_DIR . '/includes/admin.php' );
 include_once( PMPROGROUPACCT_DIR . '/includes/admin-groups.php' );
 include_once( PMPROGROUPACCT_DIR . '/includes/scripts.php' );
-include_once( PMPROGROUPACCT_DIR . '/includes/pico-styles.php' );
 include_once( PMPROGROUPACCT_DIR . '/includes/emails.php' );
 include_once( PMPROGROUPACCT_DIR . '/includes/edit-level.php' );
 include_once( PMPROGROUPACCT_DIR . '/includes/parents.php' );
