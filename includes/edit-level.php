@@ -99,7 +99,7 @@ function pmprogroupacct_pmpro_membership_level_before_content_settings( $level )
 											<td>
 												<?php
 												if ( 1 === $tier ) {
-													esc_html_e( '1st player (0 = level price)', 'pmpro-group-accounts' );
+													esc_html_e( '1st player (0 = membership level base price)', 'pmpro-group-accounts' );
 												} elseif ( 5 === $tier ) {
 													esc_html_e( '5th player and beyond', 'pmpro-group-accounts' );
 												} else {

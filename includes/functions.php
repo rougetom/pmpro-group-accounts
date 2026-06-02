@@ -83,10 +83,10 @@ function pmprogroupacct_calculate_child_total( $settings, $child_count, $level_b
 
 
 function pmprogroupacct_get_level_base_pricing( $level_id ) {
-	\$level_id = (int) \$level_id;
-	\$base     = pmpro_getLevel( \$level_id );
+	$level_id = (int) $level_id;
+	$base     = pmpro_getLevel( $level_id );
 
-	if ( empty( \$base ) ) {
+	if ( empty( $base ) ) {
 		return array(
 			'initial_payment' => 0,
 			'billing_amount'  => 0,
@@ -94,15 +94,59 @@ function pmprogroupacct_get_level_base_pricing( $level_id ) {
 	}
 
 	return array(
-		'initial_payment' => (float) \$base->initial_payment,
-		'billing_amount'  => (float) \$base->billing_amount,
+		'initial_payment' => (float) $base->initial_payment,
+		'billing_amount'  => (float) $base->billing_amount,
+	);
+}
+
+function pmprogroupacct_get_player_one_price( $settings, $level_id ) {
+	$settings     = pmprogroupacct_normalize_settings( $settings );
+	$base_pricing = pmprogroupacct_get_level_base_pricing( $level_id );
+
+	if ( ! empty( $settings['pricing_tiers'][1] ) ) {
+		return (float) $settings['pricing_tiers'][1];
+	}
+
+	return (float) $base_pricing['initial_payment'];
+}
+
+function pmprogroupacct_get_calculated_pricing( $level_id, $child_count = null ) {
+	$settings = pmprogroupacct_normalize_settings( pmprogroupacct_get_settings_for_level( $level_id ) );
+
+	if ( null === $child_count ) {
+		$child_count = pmprogroupacct_get_requested_child_count( $settings );
+	}
+
+	$base_pricing = pmprogroupacct_get_level_base_pricing( $level_id );
+	$initial      = pmprogroupacct_calculate_child_total( $settings, $child_count, $base_pricing['initial_payment'] );
+	$recurring    = pmprogroupacct_calculate_child_total( $settings, $child_count, $base_pricing['billing_amount'] );
+
+	return array(
+		'player_count'    => (int) $child_count,
+		'player_one_price'=> pmprogroupacct_get_player_one_price( $settings, $level_id ),
+		'initial'         => $initial,
+		'recurring'       => $recurring,
+		'settings'        => $settings,
+	);
+}
+
+
+function pmprogroupacct_get_checkout_payment_total( $level_id, $child_count = null ) {
+	$calculated = pmprogroupacct_get_calculated_pricing( $level_id, $child_count );
+
+	return apply_filters(
+		'pmprogroupacct_checkout_payment_total',
+		$calculated['initial']['total'],
+		$level_id,
+		$calculated['player_count'],
+		$calculated
 	);
 }
 
 function pmprogroupacct_apply_child_pricing_to_level( $level, $settings, $child_count ) {
-	$base_pricing      = pmprogroupacct_get_level_base_pricing( $level->id );
-	$initial_pricing   = pmprogroupacct_calculate_child_total( $settings, $child_count, $base_pricing['initial_payment'] );
-	$recurring_pricing = pmprogroupacct_calculate_child_total( $settings, $child_count, $base_pricing['billing_amount'] );
+	$calculated        = pmprogroupacct_get_calculated_pricing( $level->id, $child_count );
+	$initial_pricing   = $calculated['initial'];
+	$recurring_pricing = $calculated['recurring'];
 
 	switch ( $settings['price_application'] ) {
 		case 'both':

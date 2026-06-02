@@ -7,10 +7,6 @@
 
 
 
-function pmprogroupacct_sandbach_handles_checkout_pricing() {
-	return defined( 'SANDBACH_MEMBERSHIPS_VERSION' ) || class_exists( 'Sandbach\\Frontend\\TeamSelector' );
-}
-
 function pmprogroupacct_is_multi_child_checkout( $level = null ) {
 	if ( null === $level ) {
 		$level = pmpro_getLevelAtCheckout();
@@ -85,7 +81,15 @@ function pmprogroupacct_ajax_render_payment_plan() {
 	remove_action( 'pmpro_checkout_after_pricing_fields', 'pmprogroupacct_capture_payment_plan_start', 1 );
 	remove_action( 'pmpro_checkout_after_pricing_fields', 'pmprogroupacct_capture_payment_plan_end', 999 );
 
-	$checkout_level = pmprogroupacct_sandbach_handles_checkout_pricing() ? $level : apply_filters( 'pmpro_checkout_level', $level );
+	$checkout_level = apply_filters( 'pmpro_checkout_level', $level );
+	$calculated     = pmprogroupacct_get_calculated_pricing( $level->id );
+	/**
+	 * Expose tier-calculated checkout totals for payment plan integrations.
+	 *
+	 * @param array  $calculated Tier pricing totals from membership level settings.
+	 * @param object $checkout_level Checkout level after pmpro_checkout_level filters.
+	 */
+	do_action( 'pmprogroupacct_before_payment_plan_render', $calculated, $checkout_level );
 
 	ob_start();
 	do_action( 'pmpro_checkout_after_level_cost', $checkout_level );
@@ -142,13 +146,12 @@ function pmprogroupacct_rest_checkout_level_add_cost_html( $response, $server, $
 	$level = is_object( $data ) ? $data : (object) $data;
 	if ( function_exists( 'pmpro_getLevelCost' ) ) {
 		$data = (array) $data;
-		$settings = pmprogroupacct_normalize_settings( pmprogroupacct_get_settings_for_level( $level->id ) );
-		$player_count = pmprogroupacct_get_requested_child_count( $settings );
-		$base_pricing = pmprogroupacct_get_level_base_pricing( $level->id );
-		$pricing = pmprogroupacct_calculate_child_total( $settings, $player_count, $base_pricing['initial_payment'] );
-		$data['player_count'] = $player_count;
-		$data['per_player_formatted'] = pmprogroupacct_format_price_amount( $pricing['average'] );
-		$data['total_formatted'] = function_exists( 'pmpro_formatPrice' ) ? pmpro_formatPrice( $pricing['total'] ) : pmprogroupacct_format_price_amount( $pricing['total'] );
+		$calculated = pmprogroupacct_get_calculated_pricing( $level->id );
+		$data['player_count'] = $calculated['player_count'];
+		$data['per_player_formatted'] = pmprogroupacct_format_price_amount( $calculated['initial']['average'] );
+		$data['total_formatted'] = function_exists( 'pmpro_formatPrice' ) ? pmpro_formatPrice( $calculated['initial']['total'] ) : pmprogroupacct_format_price_amount( $calculated['initial']['total'] );
+		$data['pricing_breakdown'] = $calculated['initial']['breakdown'];
+		$data['checkout_total'] = $calculated['initial']['total'];
 		$data['initial_payment_formatted'] = function_exists( 'pmpro_formatPrice' ) ? pmpro_formatPrice( $level->initial_payment ) : pmprogroupacct_format_price_amount( $level->initial_payment );
 		$data['billing_amount_formatted'] = function_exists( 'pmpro_formatPrice' ) ? pmpro_formatPrice( $level->billing_amount ) : pmprogroupacct_format_price_amount( $level->billing_amount );
 		$data['level_cost_html'] = wp_kses_post( wpautop( pmpro_getLevelCost( $level ) ) );
@@ -170,10 +173,11 @@ function pmprogroupacct_pmpro_checkout_boxes_parent() {
 		return;
 	}
 
-	$settings     = pmprogroupacct_normalize_settings( pmprogroupacct_get_settings_for_level( $level->id ) );
-	$child_count  = pmprogroupacct_get_requested_child_count( $settings );
-	$base_pricing = pmprogroupacct_get_level_base_pricing( $level->id );
-	$pricing      = pmprogroupacct_calculate_child_total( $settings, $child_count, $base_pricing['initial_payment'] );
+	$calculated   = pmprogroupacct_get_calculated_pricing( $level->id );
+	$settings     = $calculated['settings'];
+	$child_count  = $calculated['player_count'];
+	$pricing      = $calculated['initial'];
+	$player_one   = $calculated['player_one_price'];
 	$fixed_count  = $settings['min_children'] === $settings['max_children'];
 	?>
 	<fieldset id="pmprogroupacct_parent_fields" class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_fieldset', 'pmprogroupacct_parent_fields' ) ); ?>">
@@ -207,12 +211,12 @@ function pmprogroupacct_pmpro_checkout_boxes_parent() {
 
 
 				<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_fields' ) ); ?>">
-					<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field pmprogroupacct-pricing-summary' ) ); ?>" id="pmprogroupacct_pricing_summary" data-base-price="<?php echo esc_attr( (float) $base_pricing['initial_payment'] ); ?>">
+					<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field pmprogroupacct-pricing-summary' ) ); ?>" id="pmprogroupacct_pricing_summary" data-base-price="<?php echo esc_attr( (float) $player_one ); ?>">
 						<p>
 							<strong><?php esc_html_e( 'Per player:', 'pmpro-group-accounts' ); ?></strong>
 							<span id="pmprogroupacct_average_price"><?php echo esc_html( pmprogroupacct_format_price_amount( $pricing['average'] ) ); ?></span>
 						</p>
-						<p class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_hint' ) ); ?>"><?php esc_html_e( 'The first player pays the membership level price. Additional players use discounted tier pricing.', 'pmpro-group-accounts' ); ?></p>
+						<p class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_hint' ) ); ?>"><?php esc_html_e( 'Player pricing is calculated from the tier prices configured on this membership level.', 'pmpro-group-accounts' ); ?></p>
 					</div>
 				</div>
 			</div>
@@ -402,14 +406,15 @@ function pmprogroupacct_checkout_pricing_data() {
 		return;
 	}
 
-	$settings = pmprogroupacct_normalize_settings( pmprogroupacct_get_settings_for_level( $level->id ) );
+	$calculated = pmprogroupacct_get_calculated_pricing( $level->id );
+	$settings   = $calculated['settings'];
 	wp_localize_script(
 		'pmprogroupacct-children-checkout',
 		'pmprogroupacctCheckout',
 		array(
 			'minChildren'   => (int) $settings['min_children'],
 			'maxChildren'   => (int) $settings['max_children'],
-			'basePrice'     => (float) pmprogroupacct_get_level_base_pricing( $level->id )['initial_payment'],
+			'basePrice'     => (float) $calculated['player_one_price'],
 			'pricingTiers'  => $settings['pricing_tiers'],
 			'currencySymbol'=> html_entity_decode( pmprogroupacct_get_currency_symbol(), ENT_QUOTES, 'UTF-8' ),
 			'decimals'      => pmprogroupacct_get_currency_decimals(),
