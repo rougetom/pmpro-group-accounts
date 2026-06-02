@@ -138,7 +138,7 @@ function pmprogroupacct_admin_child_fields_enqueue_scripts( $hook ) {
 
 	wp_enqueue_script(
 		'pmprogroupacct-child-fields-admin',
-		plugins_url( 'js/pmprogroupacct-child-fields-admin.js', dirname( __FILE__ ) ),
+		plugins_url( 'js/pmprogroupacct-child-fields-admin.js', PMPROGROUPACCT_BASE_FILE ),
 		array( 'jquery' ),
 		PMPROGROUPACCT_VERSION,
 		true

@@ -43,6 +43,23 @@ function pmprogroupacct_is_pmpro_frontend_page() {
 		return false;
 	}
 
+	$pmpro_page_checks = array(
+		'pmpro_is_checkout',
+		'pmpro_is_levels',
+		'pmpro_is_account_page',
+		'pmpro_is_login',
+		'pmpro_is_billing',
+		'pmpro_is_cancel',
+		'pmpro_is_confirmation',
+		'pmpro_is_invoice',
+	);
+
+	foreach ( $pmpro_page_checks as $check ) {
+		if ( is_callable( $check ) && call_user_func( $check ) ) {
+			return true;
+		}
+	}
+
 	foreach ( pmprogroupacct_get_pmpro_frontend_page_ids() as $page_id ) {
 		if ( $page_id > 0 && is_page( $page_id ) ) {
 			return true;
@@ -50,6 +67,23 @@ function pmprogroupacct_is_pmpro_frontend_page() {
 	}
 
 	return false;
+}
+
+/**
+ * Whether checkout frontend assets should load.
+ *
+ * @return bool
+ */
+function pmprogroupacct_should_enqueue_checkout_assets() {
+	if ( is_admin() ) {
+		return false;
+	}
+
+	if ( function_exists( 'pmpro_is_checkout' ) && pmpro_is_checkout() ) {
+		return true;
+	}
+
+	return pmprogroupacct_is_pmpro_frontend_page();
 }
 
 /**
