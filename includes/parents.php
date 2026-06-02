@@ -427,7 +427,7 @@ function pmprogroupacct_checkout_pricing_data() {
 			'maxChildren'   => (int) $settings['max_children'],
 			'basePrice'     => (float) $calculated['player_one_price'],
 			'pricingTiers'  => $settings['pricing_tiers'],
-			'currencySymbol'=> html_entity_decode( pmprogroupacct_get_currency_symbol(), ENT_QUOTES, 'UTF-8' ),
+			'currencySymbol'=> pmprogroupacct_get_currency_symbol(),
 			'decimals'      => pmprogroupacct_get_currency_decimals(),
 			'checkoutLevelUrl'=> esc_url_raw( rest_url( 'pmpro/v1/checkout_level' ) ),
 			'paymentPlanUrl'=> admin_url( 'admin-ajax.php?action=pmprogroupacct_render_payment_plan' ),

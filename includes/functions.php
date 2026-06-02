@@ -183,19 +183,27 @@ function pmprogroupacct_apply_child_pricing_to_level( $level, $settings, $child_
  * @return string
  */
 function pmprogroupacct_get_currency_symbol() {
+	$symbol = '';
+
 	if ( function_exists( 'pmpro_get_currency' ) ) {
 		$currency = pmpro_get_currency();
 		if ( ! empty( $currency['symbol'] ) ) {
-			return $currency['symbol'];
+			$symbol = $currency['symbol'];
 		}
 	}
 
-	global $pmpro_currency_symbol;
-	if ( ! empty( $pmpro_currency_symbol ) ) {
-		return $pmpro_currency_symbol;
+	if ( '' === $symbol ) {
+		global $pmpro_currency_symbol;
+		if ( ! empty( $pmpro_currency_symbol ) ) {
+			$symbol = $pmpro_currency_symbol;
+		}
 	}
 
-	return '$';
+	if ( '' === $symbol ) {
+		$symbol = '$';
+	}
+
+	return html_entity_decode( (string) $symbol, ENT_QUOTES, 'UTF-8' );
 }
 
 /**

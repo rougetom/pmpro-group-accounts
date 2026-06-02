@@ -87,8 +87,16 @@
 	margin-bottom: 1.5rem;
 }
 
-.pico input:not([type=checkbox], [type=radio]),
+.pico input:not([type=checkbox], [type=radio], [type=submit], [type=button], [type=reset], [type=file]),
 .pico select,
 .pico textarea {
 	margin-bottom: 0.1rem;
+}
+
+.pico.pmpro-pico-scope input[type="submit"],
+.pico.pmpro-pico-scope button[type="submit"],
+.pico.pmpro-pico-scope .pmpro_btn {
+	margin-bottom: 0;
+	box-shadow: none;
+	--pico-form-element-spacing-vertical: 0.75rem;
 }
