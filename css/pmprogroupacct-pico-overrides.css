@@ -1,4 +1,18 @@
 /**
+ * Force light theme text colors inside the scoped Pico wrapper.
+ * Without this, :root:not([data-theme]) dark-mode variables leak in
+ * and headings render as light grey on PMPro's white card backgrounds.
+ */
+.pico.pmpro-pico-scope,
+.pico.pmpro-pico-scope[data-theme="light"] {
+	color-scheme: light;
+	--pico-color: #1f2937;
+	--pico-h1-color: #111827;
+	--pico-h2-color: #1f2937;
+	--pico-h3-color: #374151;
+}
+
+/**
  * Overrides inside scoped Pico PMPro content.
  * Keeps custom segmented radios intact and adds light PMPro spacing tweaks.
  */

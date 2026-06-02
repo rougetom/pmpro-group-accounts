@@ -67,7 +67,7 @@ function pmprogroupacct_pico_wrap_content( $content ) {
 		return $content;
 	}
 
-	return '<div class="pico pmpro-pico-scope">' . $content . '</div>';
+	return '<div class="pico pmpro-pico-scope" data-theme="light">' . $content . '</div>';
 }
 
 /**
