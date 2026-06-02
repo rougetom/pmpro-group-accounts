@@ -26,6 +26,89 @@ function pmprogroupacct_get_child_field_types() {
 }
 
 /**
+ * Allowed frontend widths for player custom fields.
+ *
+ * @return array
+ */
+function pmprogroupacct_get_child_field_width_options() {
+	return array(
+		25  => '25%',
+		33  => '33%',
+		50  => '50%',
+		67  => '67%',
+		75  => '75%',
+		100 => '100%',
+	);
+}
+
+/**
+ * Sanitize a custom field width value.
+ *
+ * @param mixed $width Raw width.
+ * @return int
+ */
+function pmprogroupacct_sanitize_child_field_width( $width ) {
+	$width = (int) $width;
+	return array_key_exists( $width, pmprogroupacct_get_child_field_width_options() ) ? $width : 100;
+}
+
+/**
+ * Map a width percentage to a 12-column grid span.
+ *
+ * @param int $width Field width percentage.
+ * @return int
+ */
+function pmprogroupacct_get_child_field_grid_span( $width ) {
+	$map = array(
+		25  => 3,
+		33  => 4,
+		50  => 6,
+		67  => 8,
+		75  => 9,
+		100 => 12,
+	);
+
+	return $map[ pmprogroupacct_sanitize_child_field_width( $width ) ] ?? 12;
+}
+
+/**
+ * Group custom fields into frontend rows based on configured widths.
+ *
+ * @param array $fields Field definitions.
+ * @return array<int, array<int, array>>
+ */
+function pmprogroupacct_group_child_fields_by_width_rows( $fields ) {
+	$rows = array();
+	$current_row = array();
+	$current_width = 0;
+
+	foreach ( $fields as $field ) {
+		$field_width = pmprogroupacct_sanitize_child_field_width( $field['width'] ?? 100 );
+
+		if ( ! empty( $current_row ) && ( $current_width + $field_width ) > 100 ) {
+			$rows[] = $current_row;
+			$current_row = array();
+			$current_width = 0;
+		}
+
+		$current_row[] = $field;
+		$current_width += $field_width;
+
+		if ( $current_width >= 100 ) {
+			$rows[] = $current_row;
+			$current_row = array();
+			$current_width = 0;
+		}
+	}
+
+	if ( ! empty( $current_row ) ) {
+		$rows[] = $current_row;
+	}
+
+	return $rows;
+}
+
+/**
  * Get all custom field definitions.
  *
  * @return array
@@ -82,6 +165,7 @@ function pmprogroupacct_normalize_child_field_definition( $field ) {
 		'required_checkout' => ! empty( $field['required_checkout'] ),
 		'show_manage'       => array_key_exists( 'show_manage', $field ) ? ! empty( $field['show_manage'] ) : true,
 		'admin_only'        => ! empty( $field['admin_only'] ),
+		'width'             => pmprogroupacct_sanitize_child_field_width( $field['width'] ?? 100 ),
 	);
 }
 
@@ -175,6 +259,39 @@ function pmprogroupacct_render_child_custom_field_help_text( $field ) {
 	<?php
 }
 
+function pmprogroupacct_render_child_custom_field( $field, $name_prefix, $values, $context ) {
+	$field_id    = $name_prefix . '[custom_meta][' . $field['key'] . ']';
+	$field_value = $values[ $field['key'] ] ?? '';
+	$required    = ( 'checkout' === $context && ! empty( $field['required_checkout'] ) );
+	$width       = pmprogroupacct_sanitize_child_field_width( $field['width'] ?? 100 );
+	$grid_span   = pmprogroupacct_get_child_field_grid_span( $width );
+	?>
+	<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field pmprogroupacct_child_custom_field pmprogroupacct-child-custom-field-col' ) ); ?>" style="--pmprogroupacct-field-width: <?php echo esc_attr( $width ); ?>%; --pmprogroupacct-field-grid-span: <?php echo esc_attr( $grid_span ); ?>;">
+		<?php if ( ! in_array( $field['type'], array( 'checkbox', 'radio' ), true ) ) : ?>
+			<label class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>" for="<?php echo esc_attr( $field_id ); ?>">
+				<?php echo esc_html( $field['label'] ); ?>
+				<?php if ( $required ) : ?>
+					<span class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_asterisk' ) ); ?>">*</span>
+				<?php endif; ?>
+			</label>
+			<?php pmprogroupacct_render_child_custom_field_help_text( $field ); ?>
+		<?php elseif ( 'radio' === $field['type'] ) : ?>
+			<span class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>">
+				<?php echo esc_html( $field['label'] ); ?>
+				<?php if ( $required ) : ?>
+					<span class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_asterisk' ) ); ?>">*</span>
+				<?php endif; ?>
+			</span>
+			<?php pmprogroupacct_render_child_custom_field_help_text( $field ); ?>
+		<?php endif; ?>
+		<?php pmprogroupacct_render_child_custom_field_input( $field, $field_id, $field_value, $required ); ?>
+		<?php if ( 'checkbox' === $field['type'] ) : ?>
+			<?php pmprogroupacct_render_child_custom_field_help_text( $field ); ?>
+		<?php endif; ?>
+	</div>
+	<?php
+}
+
 function pmprogroupacct_render_child_custom_fields( $name_prefix, $values = array(), $context = 'checkout', $is_admin = false ) {
 	$fields = pmprogroupacct_get_child_fields_for_context( $context, $is_admin );
 	if ( empty( $fields ) ) {
@@ -182,36 +299,16 @@ function pmprogroupacct_render_child_custom_fields( $name_prefix, $values = arra
 	}
 
 	$values = is_array( $values ) ? $values : array();
+	$rows   = pmprogroupacct_group_child_fields_by_width_rows( $fields );
 	?>
 	<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmprogroupacct_child_custom_fields' ) ); ?>">
-		<?php foreach ( $fields as $field ) : ?>
-			<?php
-			$field_id    = $name_prefix . '[custom_meta][' . $field['key'] . ']';
-			$field_value = $values[ $field['key'] ] ?? '';
-			$required    = ( 'checkout' === $context && ! empty( $field['required_checkout'] ) );
-			?>
-			<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field pmprogroupacct_child_custom_field' ) ); ?>">
-				<?php if ( ! in_array( $field['type'], array( 'checkbox', 'radio' ), true ) ) : ?>
-					<label class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>" for="<?php echo esc_attr( $field_id ); ?>">
-						<?php echo esc_html( $field['label'] ); ?>
-						<?php if ( $required ) : ?>
-							<span class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_asterisk' ) ); ?>">*</span>
-						<?php endif; ?>
-					</label>
-					<?php pmprogroupacct_render_child_custom_field_help_text( $field ); ?>
-				<?php elseif ( 'radio' === $field['type'] ) : ?>
-					<span class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>">
-						<?php echo esc_html( $field['label'] ); ?>
-						<?php if ( $required ) : ?>
-							<span class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_asterisk' ) ); ?>">*</span>
-						<?php endif; ?>
-					</span>
-					<?php pmprogroupacct_render_child_custom_field_help_text( $field ); ?>
-				<?php endif; ?>
-				<?php pmprogroupacct_render_child_custom_field_input( $field, $field_id, $field_value, $required ); ?>
-				<?php if ( 'checkbox' === $field['type'] ) : ?>
-					<?php pmprogroupacct_render_child_custom_field_help_text( $field ); ?>
-				<?php endif; ?>
+		<?php foreach ( $rows as $row_fields ) : ?>
+			<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmprogroupacct-child-custom-field-row' ) ); ?>">
+				<?php
+				foreach ( $row_fields as $field ) {
+					pmprogroupacct_render_child_custom_field( $field, $name_prefix, $values, $context );
+				}
+				?>
 			</div>
 		<?php endforeach; ?>
 	</div>

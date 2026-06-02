@@ -175,6 +175,22 @@
 	margin-bottom: 0;
 }
 
+.pmprogroupacct-child-custom-field-row {
+	display: grid;
+	grid-template-columns: repeat(12, minmax(0, 1fr));
+	gap: 1rem;
+	margin-bottom: 0.5rem;
+}
+
+.pmprogroupacct-child-custom-field-row:last-child {
+	margin-bottom: 0;
+}
+
+.pmprogroupacct-child-custom-field-col {
+	grid-column: span var(--pmprogroupacct-field-grid-span, 12);
+	min-width: 0;
+}
+
 .pmprogroupacct_child_custom_fields {
 	margin-top: 0.75rem;
 }

@@ -12,7 +12,14 @@ jQuery(function ($) {
 		var $rows = $('#pmprogroupacct-child-fields-table tbody tr');
 		if ($rows.length <= 1) {
 			$rows.find('input[type="text"], textarea').val('');
-			$rows.find('select').prop('selectedIndex', 0);
+			$rows.find('select').each(function () {
+				var $select = $(this);
+				if ($select.attr('name') && $select.attr('name').indexOf('[width]') !== -1) {
+					$select.val('100');
+				} else {
+					$select.prop('selectedIndex', 0);
+				}
+			});
 			$rows.find('input[type="checkbox"]').prop('checked', false);
 			return;
 		}

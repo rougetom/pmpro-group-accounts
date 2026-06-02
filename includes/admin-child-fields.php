@@ -79,8 +79,10 @@ function pmprogroupacct_admin_child_fields_page() {
 					<tr>
 						<th><?php esc_html_e( 'Field Key', 'pmpro-group-accounts' ); ?></th>
 						<th><?php esc_html_e( 'Label', 'pmpro-group-accounts' ); ?></th>
+						<th><?php esc_html_e( 'Help Text', 'pmpro-group-accounts' ); ?></th>
 						<th><?php esc_html_e( 'Type', 'pmpro-group-accounts' ); ?></th>
 						<th><?php esc_html_e( 'Select/Radio Options', 'pmpro-group-accounts' ); ?></th>
+						<th><?php esc_html_e( 'Width', 'pmpro-group-accounts' ); ?></th>
 						<th><?php esc_html_e( 'Checkout', 'pmpro-group-accounts' ); ?></th>
 						<th><?php esc_html_e( 'Required', 'pmpro-group-accounts' ); ?></th>
 						<th><?php esc_html_e( 'Manage Page', 'pmpro-group-accounts' ); ?></th>
@@ -100,7 +102,7 @@ function pmprogroupacct_admin_child_fields_page() {
 			<p>
 				<button type="button" class="button" id="pmprogroupacct-add-child-field"><?php esc_html_e( 'Add Field', 'pmpro-group-accounts' ); ?></button>
 			</p>
-			<p class="description"><?php esc_html_e( 'Field keys must be unique lowercase identifiers (e.g. medical_notes). Select and radio options: one choice per line.', 'pmpro-group-accounts' ); ?></p>
+			<p class="description"><?php esc_html_e( 'Field keys must be unique lowercase identifiers (e.g. medical_notes). Select and radio options: one choice per line. Width controls how much of a row a field uses on checkout/manage; fields are placed on the same row while their combined width is 100% or less.', 'pmpro-group-accounts' ); ?></p>
 			<p><input type="submit" name="pmprogroupacct_save_child_fields_submit" class="button button-primary" value="<?php esc_attr_e( 'Save Fields', 'pmpro-group-accounts' ); ?>" /></p>
 		</form>
 
@@ -131,6 +133,7 @@ function pmprogroupacct_render_admin_child_field_row( $index, $field, $types ) {
 			'required_checkout' => false,
 			'show_manage'       => true,
 			'admin_only'        => false,
+			'width'             => 100,
 		)
 	);
 	?>
@@ -146,6 +149,13 @@ function pmprogroupacct_render_admin_child_field_row( $index, $field, $types ) {
 			</select>
 		</td>
 		<td><textarea name="pmprogroupacct_child_fields[<?php echo esc_attr( $index ); ?>][options]" rows="2" class="large-text"><?php echo esc_textarea( $field['options'] ); ?></textarea></td>
+		<td>
+			<select name="pmprogroupacct_child_fields[<?php echo esc_attr( $index ); ?>][width]">
+				<?php foreach ( pmprogroupacct_get_child_field_width_options() as $width_value => $width_label ) : ?>
+					<option value="<?php echo esc_attr( $width_value ); ?>" <?php selected( (int) ( $field['width'] ?? 100 ), (int) $width_value ); ?>><?php echo esc_html( $width_label ); ?></option>
+				<?php endforeach; ?>
+			</select>
+		</td>
 		<td><label><input type="checkbox" name="pmprogroupacct_child_fields[<?php echo esc_attr( $index ); ?>][show_checkout]" value="1" <?php checked( ! empty( $field['show_checkout'] ) ); ?> /> <?php esc_html_e( 'Show', 'pmpro-group-accounts' ); ?></label></td>
 		<td><label><input type="checkbox" name="pmprogroupacct_child_fields[<?php echo esc_attr( $index ); ?>][required_checkout]" value="1" <?php checked( ! empty( $field['required_checkout'] ) ); ?> /> <?php esc_html_e( 'Required', 'pmpro-group-accounts' ); ?></label></td>
 		<td><label><input type="checkbox" name="pmprogroupacct_child_fields[<?php echo esc_attr( $index ); ?>][show_manage]" value="1" <?php checked( ! empty( $field['show_manage'] ) ); ?> /> <?php esc_html_e( 'Show', 'pmpro-group-accounts' ); ?></label></td>
