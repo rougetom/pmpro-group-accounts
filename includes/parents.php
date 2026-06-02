@@ -248,7 +248,7 @@ function pmprogroupacct_checkout_pricing_data() {
 			'maxChildren'   => (int) $settings['max_children'],
 			'basePrice'     => (float) $level->initial_payment,
 			'pricingTiers'  => $settings['pricing_tiers'],
-			'currencySymbol'=> pmpro_getCurrencySymbol(),
+			'currencySymbol'=> pmprogroupacct_get_currency_symbol(),
 			'childFieldsUrl'=> admin_url( 'admin-ajax.php?action=pmprogroupacct_render_child_fields' ),
 		)
 	);

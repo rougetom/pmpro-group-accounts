@@ -114,6 +114,27 @@ function pmprogroupacct_apply_child_pricing_to_level( $level, $settings, $child_
 	return $level;
 }
 
+/**
+ * Get the currency symbol for the active PMPro currency.
+ *
+ * @return string
+ */
+function pmprogroupacct_get_currency_symbol() {
+	if ( function_exists( 'pmpro_get_currency' ) ) {
+		$currency = pmpro_get_currency();
+		if ( ! empty( $currency['symbol'] ) ) {
+			return $currency['symbol'];
+		}
+	}
+
+	global $pmpro_currency_symbol;
+	if ( ! empty( $pmpro_currency_symbol ) ) {
+		return $pmpro_currency_symbol;
+	}
+
+	return '$';
+}
+
 function pmprogroupacct_get_team_display( $team_post_id ) {
 	$display = array(
 		'team'     => '',
