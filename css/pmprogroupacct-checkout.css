@@ -263,23 +263,28 @@
 	margin-bottom: 0;
 }
 
-.pmprogroupacct-field-copy-btn {
-	appearance: none;
-	border: 1px solid #cfd5e2;
-	background: #f8fafc;
-	color: #1f2937;
-	border-radius: 999px;
-	padding: 0.2rem 0.75rem;
-	font-size: 0.85rem;
+.pmprogroupacct-field-copy-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	font-size: 0.9rem;
 	line-height: 1.4;
+	color: var(--pico-primary, #0172ad);
+	text-decoration: underline;
 	cursor: pointer;
+	background: none;
+	border: none;
+	padding: 0;
 }
 
-.pmprogroupacct-field-copy-btn:hover,
-.pmprogroupacct-field-copy-btn:focus {
-	background: #eef2ff;
-	border-color: #93b4fd;
-	color: #1e3a8a;
+.pmprogroupacct-field-copy-link:hover,
+.pmprogroupacct-field-copy-link:focus {
+	color: #0b4f8a;
+	text-decoration: none;
+}
+
+.pmprogroupacct-field-copy-link .fa-copy {
+	font-size: 0.85em;
 }
 
 .pmprogroupacct-member-name-readonly .pmprogroupacct-readonly-value {

@@ -115,19 +115,10 @@
 		}
 
 		$.each(config.parentPhoneSelectors || [], function (_, selector) {
-			$step.find(selector).each(function () {
-				var value = $.trim($(this).val());
-				var name = ($(this).attr('name') || '').toLowerCase();
+			var $field = $step.find(selector).add($('#pmpro_form').find(selector)).first();
 
-				if (!value || name.indexOf('emergency') !== -1) {
-					return;
-				}
-
-				phone = value;
-				return false;
-			});
-
-			if (phone) {
+			if ($field.length) {
+				phone = $.trim($field.val());
 				return false;
 			}
 		});
@@ -185,7 +176,8 @@
 
 	$(document).on('pmprogroupacct_children_updated', initCheckoutUx);
 
-	$(document).on('click', '.pmprogroupacct-field-copy-btn', function () {
+	$(document).on('click', '.pmprogroupacct-field-copy-link', function (e) {
+		e.preventDefault();
 		var $button = $(this);
 
 		if ($button.data('copySource') === 'parent_phone') {

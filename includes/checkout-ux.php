@@ -34,10 +34,14 @@ function pmprogroupacct_get_checkout_member_full_name() {
  */
 function pmprogroupacct_get_checkout_parent_phone_selectors() {
 	$selectors = array(
-		'#pmprogroupacct_checkout_step_1 input[type="tel"]',
-		'#pmpro_user_fields input[type="tel"]',
-		'#pmpro_form fieldset[id^="pmpro_form_fieldset-"] input[type="tel"]',
-		'#pmpro_form input[type="tel"][name*="phone"]',
+		'#pmprogroupacct_checkout_step_1 input[name="phone_number"]',
+		'#pmprogroupacct_checkout_step_1 input[name="pmpro_fields[phone_number]"]',
+		'#pmprogroupacct_checkout_step_1 input[name*="phone_number"]',
+		'#pmpro_user_fields input[name="phone_number"]',
+		'#pmpro_user_fields input[name="pmpro_fields[phone_number]"]',
+		'#pmpro_form input[name="phone_number"]',
+		'#pmpro_form input[name="pmpro_fields[phone_number]"]',
+		'#pmpro_form input[name*="phone_number"]',
 	);
 
 	return array_values(
@@ -97,10 +101,30 @@ function pmprogroupacct_get_checkout_member_name_field_selectors() {
 }
 
 /**
- * Render a small inline copy helper button beside a field label.
+ * Enqueue Font Awesome for copy icons when not already loaded by the theme.
+ */
+function pmprogroupacct_enqueue_font_awesome_for_checkout() {
+	$handles = array( 'font-awesome', 'fontawesome', 'font-awesome-5', 'font-awesome-6', 'font-awesome-all' );
+
+	foreach ( $handles as $handle ) {
+		if ( wp_style_is( $handle, 'enqueued' ) || wp_style_is( $handle, 'registered' ) ) {
+			return;
+		}
+	}
+
+	wp_enqueue_style(
+		'pmprogroupacct-font-awesome',
+		'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css',
+		array(),
+		'6.5.2'
+	);
+}
+
+/**
+ * Render a small inline copy helper link beside a field label.
  *
- * @param string $label Button label.
- * @param array  $args  Button options.
+ * @param string $label Link label.
+ * @param array  $args  Link options.
  */
 function pmprogroupacct_render_field_copy_button( $label, $args = array() ) {
 	$args = wp_parse_args(
@@ -112,9 +136,10 @@ function pmprogroupacct_render_field_copy_button( $label, $args = array() ) {
 		)
 	);
 	?>
-	<button
-		type="button"
-		class="pmprogroupacct-field-copy-btn"
+	<a
+		href="#"
+		role="button"
+		class="pmprogroupacct-field-copy-link"
 		<?php if ( ! empty( $args['copy_source'] ) ) : ?>
 			data-copy-source="<?php echo esc_attr( $args['copy_source'] ); ?>"
 		<?php endif; ?>
@@ -124,7 +149,10 @@ function pmprogroupacct_render_field_copy_button( $label, $args = array() ) {
 		<?php if ( ! empty( $args['copy_field'] ) ) : ?>
 			data-copy-field="<?php echo esc_attr( $args['copy_field'] ); ?>"
 		<?php endif; ?>
-	><?php echo esc_html( $label ); ?></button>
+	>
+		<i class="fa-solid fa-copy" aria-hidden="true"></i>
+		<span><?php echo esc_html( $label ); ?></span>
+	</a>
 	<?php
 }
 
@@ -139,6 +167,8 @@ function pmprogroupacct_enqueue_checkout_ux_assets() {
 	if ( ! function_exists( 'pmprogroupacct_is_multi_child_checkout' ) || ! pmprogroupacct_is_multi_child_checkout() ) {
 		return;
 	}
+
+	pmprogroupacct_enqueue_font_awesome_for_checkout();
 
 	wp_enqueue_script(
 		'pmprogroupacct-checkout-ux',
