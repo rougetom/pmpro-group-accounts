@@ -250,3 +250,42 @@
 .pmprogroupacct-checkout-stepped #pmpro_form > fieldset:not(.pmprogroupacct-checkout-steps fieldset) {
 	display: none;
 }
+
+.pmprogroupacct-label-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.35rem 0.75rem;
+	margin-bottom: 0.35rem;
+}
+
+.pmprogroupacct-label-row .pmpro_form_label {
+	margin-bottom: 0;
+}
+
+.pmprogroupacct-field-copy-btn {
+	appearance: none;
+	border: 1px solid #cfd5e2;
+	background: #f8fafc;
+	color: #1f2937;
+	border-radius: 999px;
+	padding: 0.2rem 0.75rem;
+	font-size: 0.85rem;
+	line-height: 1.4;
+	cursor: pointer;
+}
+
+.pmprogroupacct-field-copy-btn:hover,
+.pmprogroupacct-field-copy-btn:focus {
+	background: #eef2ff;
+	border-color: #93b4fd;
+	color: #1e3a8a;
+}
+
+.pmprogroupacct-member-name-readonly .pmprogroupacct-readonly-value {
+	padding: 0.55rem 0.75rem;
+	background: #f3f4f6;
+	border: 1px solid #d1d5db;
+	border-radius: 0.375rem;
+	color: #374151;
+}

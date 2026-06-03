@@ -143,7 +143,7 @@ function pmprogroupacct_render_team_selector( $field_prefix, $selected_team = 0 
 	</div>
 	<?php
 }
-add_action( 'pmprogroupacct_child_fields', 'pmprogroupacct_render_team_selector', 10, 2 );
+// Team selector is rendered directly before custom fields in pmprogroupacct_render_child_fields().
 
 /**
  * Get team category terms.

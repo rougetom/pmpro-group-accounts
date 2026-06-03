@@ -412,7 +412,22 @@ function pmprogroupacct_render_child_fields( $index, $profile = array(), $show_h
 					<input class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_input' ) ); ?>" type="text" id="<?php echo esc_attr( $prefix ); ?>_first_name" name="<?php echo esc_attr( $prefix ); ?>[first_name]" value="<?php echo esc_attr( $profile['first_name'] ); ?>" required />
 				</div>
 				<div class="pmprogroupacct-field-col <?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field' ) ); ?>">
-					<label class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>" for="<?php echo esc_attr( $prefix ); ?>_last_name"><?php esc_html_e( 'Player Last Name', 'pmpro-group-accounts' ); ?></label>
+					<?php if ( $is_checkout && $index > 0 ) : ?>
+						<div class="pmprogroupacct-label-row">
+							<label class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>" for="<?php echo esc_attr( $prefix ); ?>_last_name"><?php esc_html_e( 'Player Last Name', 'pmpro-group-accounts' ); ?></label>
+							<?php
+							pmprogroupacct_render_field_copy_button(
+								__( 'Copy from Player 1', 'pmpro-group-accounts' ),
+								array(
+									'copy_from_player' => 0,
+									'copy_field'       => 'last_name',
+								)
+							);
+							?>
+						</div>
+					<?php else : ?>
+						<label class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>" for="<?php echo esc_attr( $prefix ); ?>_last_name"><?php esc_html_e( 'Player Last Name', 'pmpro-group-accounts' ); ?></label>
+					<?php endif; ?>
 					<input class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_input' ) ); ?>" type="text" id="<?php echo esc_attr( $prefix ); ?>_last_name" name="<?php echo esc_attr( $prefix ); ?>[last_name]" value="<?php echo esc_attr( $profile['last_name'] ); ?>" required />
 				</div>
 			</div>
@@ -439,10 +454,23 @@ function pmprogroupacct_render_child_fields( $index, $profile = array(), $show_h
 				</div>
 			</div>
 			<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field' ) ); ?>">
-				<label class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>" for="<?php echo esc_attr( $prefix ); ?>_emergency_phone"><?php esc_html_e( 'Emergency Contact Phone', 'pmpro-group-accounts' ); ?></label>
+				<div class="pmprogroupacct-label-row">
+					<label class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>" for="<?php echo esc_attr( $prefix ); ?>_emergency_phone"><?php esc_html_e( 'Emergency Contact Phone', 'pmpro-group-accounts' ); ?></label>
+					<?php if ( $is_checkout ) : ?>
+						<?php
+						pmprogroupacct_render_field_copy_button(
+							__( 'Copy my phone number', 'pmpro-group-accounts' ),
+							array( 'copy_source' => 'parent_phone' )
+						);
+						?>
+					<?php endif; ?>
+				</div>
 				<input class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_input' ) ); ?>" type="tel" id="<?php echo esc_attr( $prefix ); ?>_emergency_phone" name="<?php echo esc_attr( $prefix ); ?>[emergency_phone]" value="<?php echo esc_attr( $profile['emergency_phone'] ); ?>" />
 			</div>
 			<?php
+			if ( function_exists( 'pmprogroupacct_render_team_selector' ) ) {
+				pmprogroupacct_render_team_selector( $prefix, (int) $profile['team_post_id'] );
+			}
 			pmprogroupacct_render_child_custom_fields( $prefix, $profile['custom_meta'], $context, $is_admin );
 			do_action( 'pmprogroupacct_child_fields', $prefix, (int) $profile['team_post_id'] );
 			?>
