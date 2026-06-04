@@ -448,6 +448,11 @@ function pmprogroupacct_sanitize_child_custom_meta( $values, $fields ) {
 			case 'checkbox':
 				$sanitized[ $field['key'] ] = ! empty( $value ) ? '1' : '';
 				break;
+			case 'select':
+				$value   = sanitize_text_field( $value );
+				$options = array_values( pmprogroupacct_parse_child_field_options( $field['options'] ) );
+				$sanitized[ $field['key'] ] = in_array( $value, $options, true ) ? $value : '';
+				break;
 			case 'radio':
 				$value = sanitize_text_field( $value );
 				$options = array_keys( pmprogroupacct_get_child_field_radio_options( $field['options'] ) );
@@ -493,6 +498,20 @@ function pmprogroupacct_validate_child_custom_meta( $values, $context = 'checkou
 
 		if ( 'radio' === $field['type'] && ! empty( $value ) ) {
 			$options = array_keys( pmprogroupacct_get_child_field_radio_options( $field['options'] ) );
+			if ( ! in_array( $value, $options, true ) ) {
+				return new WP_Error(
+					'pmprogroupacct_invalid_custom_field',
+					sprintf(
+						/* translators: %s: custom field label */
+						__( 'Please choose a valid option for: %s', 'pmpro-group-accounts' ),
+						$field['label']
+					)
+				);
+			}
+		}
+
+		if ( 'select' === $field['type'] && ! empty( $value ) ) {
+			$options = array_values( pmprogroupacct_parse_child_field_options( $field['options'] ) );
 			if ( ! in_array( $value, $options, true ) ) {
 				return new WP_Error(
 					'pmprogroupacct_invalid_custom_field',
