@@ -167,6 +167,45 @@
 		return valid;
 	}
 
+	function validateAllSteps() {
+		var $steps = $('.pmprogroupacct-checkout-step');
+		var hiddenStates = [];
+
+		$steps.each(function (index) {
+			hiddenStates[index] = $(this).prop('hidden');
+			$(this).prop('hidden', false);
+		});
+
+		var valid = true;
+		var failedStep = 1;
+
+		for (var step = 1; step <= 3; step++) {
+			var $step = $('#pmprogroupacct_checkout_step_' + step);
+			$step.find('input, select, textarea').not(':disabled').each(function () {
+				if (typeof this.checkValidity === 'function' && !this.checkValidity()) {
+					valid = false;
+					failedStep = step;
+					this.reportValidity();
+					return false;
+				}
+			});
+
+			if (!valid) {
+				break;
+			}
+		}
+
+		$steps.each(function (index) {
+			$(this).prop('hidden', hiddenStates[index]);
+		});
+
+		if (!valid) {
+			goToStep(failedStep);
+		}
+
+		return valid;
+	}
+
 	function goToStep(step) {
 		currentStep = Math.max(1, Math.min(3, step));
 		updateStepUi();
@@ -219,6 +258,12 @@
 
 	$(document).on('click', '.pmprogroupacct-checkout-prev', function () {
 		goToStep(currentStep - 1);
+	});
+
+	$(document).on('submit', '#pmpro_form.pmprogroupacct-checkout-stepped', function (e) {
+		if (!validateAllSteps()) {
+			e.preventDefault();
+		}
 	});
 
 	$(document).ready(function () {

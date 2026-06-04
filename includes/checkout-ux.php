@@ -118,6 +118,8 @@ function pmprogroupacct_enqueue_font_awesome_for_checkout() {
 		array(),
 		'6.5.2'
 	);
+	wp_style_add_data( 'pmprogroupacct-font-awesome', 'integrity', 'sha384-PPIZEGYM1v8zp5Py7UjFb79S58UeqCL9pYVnVPURKEqvioPROaVAJKKLzvH2rDnI' );
+	wp_style_add_data( 'pmprogroupacct-font-awesome', 'crossorigin', 'anonymous' );
 }
 
 /**

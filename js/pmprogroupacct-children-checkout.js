@@ -50,6 +50,28 @@
 		return count;
 	}
 
+	function getCheckoutAjaxPayload(extra) {
+		var payload = typeof pmpro_getCheckoutFormDataForCheckoutLevels === 'function'
+			? pmpro_getCheckoutFormDataForCheckoutLevels()
+			: { pmprogroupacct_children_count: getChildCount() };
+
+		if (typeof pmprogroupacctCheckout !== 'undefined' && pmprogroupacctCheckout.ajaxNonce) {
+			payload.nonce = pmprogroupacctCheckout.ajaxNonce;
+		}
+
+		if (extra) {
+			$.extend(payload, extra);
+		}
+
+		return payload;
+	}
+
+	function setSanitizedHtml($target, html) {
+		var $container = $('<div>').html(html);
+		$container.find('script').remove();
+		$target.empty().append($container.contents());
+	}
+
 	function updateAverage() {
 		if (typeof pmprogroupacctCheckout === 'undefined') {
 			return;
@@ -191,18 +213,19 @@
 			}
 
 			if (data.level_cost_html) {
-				$('#pmpro_level_cost .pmpro_level_cost_text').html(data.level_cost_html);
+				setSanitizedHtml($('#pmpro_level_cost .pmpro_level_cost_text'), data.level_cost_html);
 			}
 
 			if (typeof data.level_expiration_html !== 'undefined') {
 				var $expiration = $('#pmpro_level_cost .pmpro_level_expiration_text');
 				if (data.level_expiration_html) {
 					if ($expiration.length) {
-						$expiration.html(data.level_expiration_html);
+						setSanitizedHtml($expiration, data.level_expiration_html);
 					} else {
 						$('#pmpro_level_cost').append(
-							$('<div>', { class: 'pmpro_level_expiration_text', html: data.level_expiration_html })
+							$('<div>', { class: 'pmpro_level_expiration_text' })
 						);
+						setSanitizedHtml($('#pmpro_level_cost .pmpro_level_expiration_text').last(), data.level_expiration_html);
 					}
 				} else {
 					$expiration.remove();
@@ -228,9 +251,7 @@
 
 		paymentPlanRequest = $.post(
 			pmprogroupacctCheckout.paymentPlanUrl,
-			typeof pmpro_getCheckoutFormDataForCheckoutLevels === 'function'
-				? pmpro_getCheckoutFormDataForCheckoutLevels()
-				: { pmprogroupacct_children_count: getChildCount() }
+			getCheckoutAjaxPayload()
 		).done(function (response) {
 			if (!response.success || !response.data || !response.data.html || !$.trim(response.data.html)) {
 				return;
@@ -246,7 +267,9 @@
 			var $target = getPaymentSummaryCardContent($wrapper);
 			$target.find('#pmprogroupacct_payment_plan_options, #pmprogroupacct_payment_plan_area').remove();
 			removeTopPaymentPlanSections();
-			$target.append(response.data.html);
+			var $planContainer = $('<div>');
+			setSanitizedHtml($planContainer, response.data.html);
+			$target.append($planContainer.contents());
 			moveCheckoutSections();
 			$(document).trigger('pmprogroupacct_payment_plan_updated');
 		});
@@ -272,7 +295,10 @@
 		var pending = count;
 		for (var i = 0; i < count; i++) {
 			(function (index) {
-				refreshRequest = $.post(pmprogroupacctCheckout.childFieldsUrl, { index: index }).done(function (response) {
+				refreshRequest = $.post(
+					pmprogroupacctCheckout.childFieldsUrl,
+					getCheckoutAjaxPayload({ index: index })
+				).done(function (response) {
 					if (response.success && response.data.html) {
 						$container.append(response.data.html);
 					}

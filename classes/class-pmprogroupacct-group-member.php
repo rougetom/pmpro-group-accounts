@@ -196,6 +196,11 @@ class PMProGroupAcct_Group_Member {
 			return false;
 		}
 
+		$group = new PMProGroupAcct_Group( (int) $group_id );
+		if ( empty( $group->id ) || ! $group->is_accepting_signups() ) {
+			return false;
+		}
+
 		$profile = self::sanitize_profile( $profile );
 
 		if ( empty( $profile['first_name'] ) || empty( $profile['last_name'] ) ) {
@@ -335,7 +340,7 @@ class PMProGroupAcct_Group_Member {
 			'first_name'      => sanitize_text_field( $profile['first_name'] ?? '' ),
 			'last_name'       => sanitize_text_field( $profile['last_name'] ?? '' ),
 			'date_of_birth'   => $date_of_birth,
-			'gender'          => sanitize_text_field( $profile['gender'] ?? '' ),
+			'gender'          => pmprogroupacct_sanitize_gender( $profile['gender'] ?? '' ),
 			'emergency_phone' => sanitize_text_field( $profile['emergency_phone'] ?? '' ),
 			'team_post_id'    => intval( $profile['team_post_id'] ?? 0 ),
 			'child_order'     => intval( $profile['child_order'] ?? 0 ),

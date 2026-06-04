@@ -94,7 +94,7 @@ function pmprogroupacct_handle_manage_group_actions( $group, $is_admin ) {
 				'first_name'      => sanitize_text_field( wp_unslash( $_REQUEST['pmprogroupacct_child']['first_name'] ?? '' ) ),
 				'last_name'       => sanitize_text_field( wp_unslash( $_REQUEST['pmprogroupacct_child']['last_name'] ?? '' ) ),
 				'date_of_birth'   => sanitize_text_field( wp_unslash( $_REQUEST['pmprogroupacct_child']['date_of_birth'] ?? '' ) ),
-				'gender'          => sanitize_text_field( wp_unslash( $_REQUEST['pmprogroupacct_child']['gender'] ?? '' ) ),
+				'gender'          => pmprogroupacct_sanitize_gender( wp_unslash( $_REQUEST['pmprogroupacct_child']['gender'] ?? '' ) ),
 				'emergency_phone' => sanitize_text_field( wp_unslash( $_REQUEST['pmprogroupacct_child']['emergency_phone'] ?? '' ) ),
 				'team_post_id'    => intval( $_REQUEST['pmprogroupacct_child']['team_post_id'] ?? 0 ),
 				'child_order'     => intval( $_REQUEST['pmprogroupacct_child']['child_order'] ?? 0 ),
@@ -163,23 +163,27 @@ function pmprogroupacct_render_manage_group_messages( $messages ) {
 	}
 }
 
+function pmprogroupacct_manage_group_access_denied_message() {
+	return __( 'You do not have permission to view this page.', 'pmpro-group-accounts' );
+}
+
 function pmprogroupacct_shortcode_manage_group() {
 	if ( ! function_exists( 'pmpro_get_element_class' ) ) {
 		return '<p>' . esc_html__( 'Paid Memberships Pro must be enabled to use the Group Accounts Add On.', 'pmpro-group-accounts' ) . '</p>';
 	}
 
 	if ( empty( $_REQUEST['pmprogroupacct_group_id'] ) ) {
-		return '<p>' . esc_html__( 'No membership group was passed.', 'pmpro-group-accounts' ) . '</p>';
+		return '<p>' . esc_html( pmprogroupacct_manage_group_access_denied_message() ) . '</p>';
 	}
 
 	$group = new PMProGroupAcct_Group( intval( $_REQUEST['pmprogroupacct_group_id'] ) );
 	if ( empty( $group->id ) ) {
-		return '<p>' . esc_html__( 'You do not have permission to view this membership.', 'pmpro-group-accounts' ) . '</p>';
+		return '<p>' . esc_html( pmprogroupacct_manage_group_access_denied_message() ) . '</p>';
 	}
 
 	$is_admin = current_user_can( apply_filters( 'pmpro_edit_member_capability', 'manage_options' ) );
 	if ( ! $is_admin && $group->group_parent_user_id !== get_current_user_id() ) {
-		return '<p>' . esc_html__( 'You do not have permission to view this membership.', 'pmpro-group-accounts' ) . '</p>';
+		return '<p>' . esc_html( pmprogroupacct_manage_group_access_denied_message() ) . '</p>';
 	}
 
 	$messages         = pmprogroupacct_handle_manage_group_actions( $group, $is_admin );
