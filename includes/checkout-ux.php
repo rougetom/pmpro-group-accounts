@@ -138,7 +138,6 @@ function pmprogroupacct_render_field_copy_button( $label, $args = array() ) {
 	?>
 	<a
 		href="#"
-		role="button"
 		class="pmprogroupacct-field-copy-link"
 		<?php if ( ! empty( $args['copy_source'] ) ) : ?>
 			data-copy-source="<?php echo esc_attr( $args['copy_source'] ); ?>"

@@ -252,29 +252,30 @@
 }
 
 .pmprogroupacct-label-row {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 0.35rem 0.75rem;
 	margin-bottom: 0.35rem;
+	line-height: 1.4;
 }
 
 .pmprogroupacct-label-row .pmpro_form_label {
+	display: inline;
 	margin-bottom: 0;
+	margin-right: 0.35rem;
 }
 
 .pmprogroupacct-field-copy-link {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.35rem;
-	font-size: 0.9rem;
-	line-height: 1.4;
+	display: inline;
+	font-size: inherit;
+	font-weight: inherit;
+	line-height: inherit;
 	color: var(--pico-primary, #0172ad);
 	text-decoration: underline;
+	text-underline-offset: 0.1em;
 	cursor: pointer;
 	background: none;
 	border: none;
 	padding: 0;
+	box-shadow: none;
+	vertical-align: baseline;
 }
 
 .pmprogroupacct-field-copy-link:hover,
@@ -285,6 +286,7 @@
 
 .pmprogroupacct-field-copy-link .fa-copy {
 	font-size: 0.85em;
+	margin-right: 0.2em;
 }
 
 .pmprogroupacct-member-name-readonly .pmprogroupacct-readonly-value {
