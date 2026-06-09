@@ -152,17 +152,159 @@
 		}
 	}
 
-	function validateCurrentStep() {
-		var $step = $('#pmprogroupacct_checkout_step_' + currentStep);
+	function getFieldsByName($scope, name) {
+		return $scope.find('input, select, textarea').filter(function () {
+			return this.name === name;
+		});
+	}
+
+	function reportInvalidField(field) {
+		if (!field) {
+			return;
+		}
+
+		if (typeof field.reportValidity === 'function') {
+			field.reportValidity();
+		} else {
+			field.focus();
+		}
+
+		if (typeof field.scrollIntoView === 'function') {
+			field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+		}
+	}
+
+	function validateRequiredRadioGroups($step) {
+		var validated = {};
 		var valid = true;
 
-		$step.find('input, select, textarea').filter(':visible:not(:disabled)').each(function () {
-			if (typeof this.checkValidity === 'function' && !this.checkValidity()) {
-				this.reportValidity();
+		$step.find('input[type="radio"][required]').each(function () {
+			var name = this.name;
+
+			if (!name || validated[name]) {
+				return;
+			}
+
+			validated[name] = true;
+
+			if (!getFieldsByName($step, name).filter(':checked').length) {
+				reportInvalidField(this);
 				valid = false;
 				return false;
 			}
 		});
+
+		return valid;
+	}
+
+	function validateTeamSelectors($step) {
+		var valid = true;
+
+		$step.find('.pmprogroupacct-team-selector').each(function () {
+			var $selector = $(this);
+			var teamId = $.trim($selector.find('.pmprogroupacct-team-post-id').val());
+
+			if (teamId) {
+				return;
+			}
+
+			var $category = $selector.find('.pmprogroupacct-team-category');
+			var $level = $selector.find('.pmprogroupacct-team-level');
+			var $team = $selector.find('.pmprogroupacct-team-post');
+
+			if (!$category.val()) {
+				reportInvalidField($category[0]);
+			} else if (!$level.val()) {
+				reportInvalidField($level[0]);
+			} else {
+				reportInvalidField($team[0]);
+			}
+
+			valid = false;
+			return false;
+		});
+
+		return valid;
+	}
+
+	function validateStepFields($step) {
+		if (!validateRequiredRadioGroups($step)) {
+			return false;
+		}
+
+		if (!validateTeamSelectors($step)) {
+			return false;
+		}
+
+		var valid = true;
+
+		$step.find('input, select, textarea').not(':disabled').each(function () {
+			if (this.type === 'radio') {
+				return;
+			}
+
+			if (this.type === 'checkbox' && !this.required) {
+				return;
+			}
+
+			if (typeof this.checkValidity === 'function') {
+				if (!this.checkValidity()) {
+					reportInvalidField(this);
+					valid = false;
+					return false;
+				}
+				return;
+			}
+
+			if (this.required && $.trim($(this).val()) === '') {
+				reportInvalidField(this);
+				valid = false;
+				return false;
+			}
+		});
+
+		return valid;
+	}
+
+	function validateCurrentStep() {
+		var $step = $('#pmprogroupacct_checkout_step_' + currentStep);
+
+		if (!$step.length) {
+			return true;
+		}
+
+		return validateStepFields($step);
+	}
+
+	function validateAllSteps() {
+		var $steps = $('.pmprogroupacct-checkout-step');
+		var hiddenStates = [];
+
+		$steps.each(function (index) {
+			hiddenStates[index] = $(this).prop('hidden');
+			$(this).prop('hidden', false);
+		});
+
+		var valid = true;
+		var failedStep = 1;
+
+		for (var step = 1; step <= 3; step++) {
+			var $step = $('#pmprogroupacct_checkout_step_' + step);
+
+			if (!validateStepFields($step)) {
+				valid = false;
+				failedStep = step;
+				break;
+			}
+		}
+
+		$steps.each(function (index) {
+			$(this).prop('hidden', hiddenStates[index]);
+		});
+
+		if (!valid) {
+			goToStep(failedStep);
+		}
 
 		return valid;
 	}
@@ -219,6 +361,12 @@
 
 	$(document).on('click', '.pmprogroupacct-checkout-prev', function () {
 		goToStep(currentStep - 1);
+	});
+
+	$(document).on('submit', '#pmpro_form.pmprogroupacct-checkout-stepped', function (e) {
+		if (!validateAllSteps()) {
+			e.preventDefault();
+		}
 	});
 
 	$(document).ready(function () {
