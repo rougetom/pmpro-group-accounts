@@ -59,6 +59,8 @@ function pmprogroupacct_capture_payment_plan_end( $level ) {
 add_action( 'pmpro_checkout_after_pricing_fields', 'pmprogroupacct_capture_payment_plan_end', 999, 1 );
 
 function pmprogroupacct_ajax_render_payment_plan() {
+	check_ajax_referer( 'pmprogroupacct_checkout_ajax', 'nonce' );
+
 	foreach ( $_POST as $key => $value ) {
 		if ( is_scalar( $value ) ) {
 			$_REQUEST[ $key ] = wp_unslash( $value );
@@ -441,6 +443,7 @@ function pmprogroupacct_checkout_pricing_data() {
 			'checkoutLevelUrl'=> esc_url_raw( rest_url( 'pmpro/v1/checkout_level' ) ),
 			'paymentPlanUrl'=> admin_url( 'admin-ajax.php?action=pmprogroupacct_render_payment_plan' ),
 			'childFieldsUrl'=> admin_url( 'admin-ajax.php?action=pmprogroupacct_render_child_fields' ),
+			'ajaxNonce'     => wp_create_nonce( 'pmprogroupacct_checkout_ajax' ),
 			'paymentSummaryTitle' => __( 'Payment Summary', 'pmpro-group-accounts' ),
 			'insertAfterGroup'  => pmprogroupacct_get_checkout_players_insert_after_group(),
 		)
@@ -449,8 +452,26 @@ function pmprogroupacct_checkout_pricing_data() {
 add_action( 'wp_enqueue_scripts', 'pmprogroupacct_checkout_pricing_data', 20 );
 
 function pmprogroupacct_ajax_render_child_fields() {
+	check_ajax_referer( 'pmprogroupacct_checkout_ajax', 'nonce' );
+
+	foreach ( $_POST as $key => $value ) {
+		if ( is_scalar( $value ) ) {
+			$_REQUEST[ $key ] = wp_unslash( $value );
+		}
+	}
+
 	if ( ! isset( $_REQUEST['index'] ) ) {
-		wp_die();
+		wp_send_json_error( null, 400 );
+	}
+
+	$level_id = isset( $_REQUEST['level'] ) ? (int) $_REQUEST['level'] : 0;
+	if ( ! $level_id && function_exists( 'pmpro_getLevelAtCheckout' ) ) {
+		$checkout = pmpro_getLevelAtCheckout();
+		$level_id = ! empty( $checkout->id ) ? (int) $checkout->id : 0;
+	}
+
+	if ( $level_id && ! pmprogroupacct_level_is_multi_child_parent( $level_id ) ) {
+		wp_send_json_error( null, 403 );
 	}
 
 	$index = intval( $_REQUEST['index'] );
