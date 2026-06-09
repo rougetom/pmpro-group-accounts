@@ -50,19 +50,71 @@
 		return count;
 	}
 
+	function parseQueryLikeData(data) {
+		var parsed = {};
+
+		if (!data) {
+			return parsed;
+		}
+
+		if (typeof data === 'object' && !Array.isArray(data)) {
+			return $.extend({}, data);
+		}
+
+		if (typeof data !== 'string') {
+			return parsed;
+		}
+
+		$.each(data.split('&'), function (_, pair) {
+			if (!pair) {
+				return;
+			}
+
+			var equalsIndex = pair.indexOf('=');
+			var key = decodeURIComponent(equalsIndex === -1 ? pair : pair.slice(0, equalsIndex));
+			var value = decodeURIComponent(equalsIndex === -1 ? '' : pair.slice(equalsIndex + 1));
+
+			if (key) {
+				parsed[key] = value;
+			}
+		});
+
+		return parsed;
+	}
+
+	function getCheckoutLevelId() {
+		var $level = $('#pmpro_form input[name="level"]').first();
+
+		if ($level.length) {
+			return $level.val();
+		}
+
+		if (typeof pmprogroupacctCheckout !== 'undefined' && pmprogroupacctCheckout.levelId) {
+			return pmprogroupacctCheckout.levelId;
+		}
+
+		return '';
+	}
+
 	function getCheckoutAjaxPayload(extra) {
-		var payload = typeof pmpro_getCheckoutFormDataForCheckoutLevels === 'function'
-			? pmpro_getCheckoutFormDataForCheckoutLevels()
-			: {};
+		var payload = parseQueryLikeData(
+			typeof pmpro_getCheckoutFormDataForCheckoutLevels === 'function'
+				? pmpro_getCheckoutFormDataForCheckoutLevels()
+				: null
+		);
 
 		payload.pmprogroupacct_children_count = getChildCount();
 
-		if (typeof pmprogroupacctCheckout !== 'undefined' && pmprogroupacctCheckout.ajaxNonce) {
-			payload.nonce = pmprogroupacctCheckout.ajaxNonce;
+		if (!payload.level) {
+			payload.level = getCheckoutLevelId();
 		}
 
 		if (extra) {
 			$.extend(payload, extra);
+		}
+
+		if (typeof pmprogroupacctCheckout !== 'undefined' && pmprogroupacctCheckout.ajaxNonce) {
+			payload.pmprogroupacct_checkout_nonce = pmprogroupacctCheckout.ajaxNonce;
 		}
 
 		return payload;

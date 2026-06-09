@@ -58,14 +58,39 @@ function pmprogroupacct_capture_payment_plan_end( $level ) {
 }
 add_action( 'pmpro_checkout_after_pricing_fields', 'pmprogroupacct_capture_payment_plan_end', 999, 1 );
 
-function pmprogroupacct_ajax_render_payment_plan() {
-	check_ajax_referer( 'pmprogroupacct_checkout_ajax', 'nonce' );
-
+function pmprogroupacct_merge_checkout_ajax_request() {
 	foreach ( $_POST as $key => $value ) {
 		if ( is_scalar( $value ) ) {
 			$_REQUEST[ $key ] = wp_unslash( $value );
 		}
 	}
+}
+
+/**
+ * Verify the checkout AJAX nonce and return a JSON error on failure.
+ */
+function pmprogroupacct_verify_checkout_ajax_request() {
+	$nonce = '';
+
+	if ( isset( $_REQUEST['pmprogroupacct_checkout_nonce'] ) ) {
+		$nonce = sanitize_text_field( wp_unslash( $_REQUEST['pmprogroupacct_checkout_nonce'] ) );
+	} elseif ( isset( $_REQUEST['nonce'] ) ) {
+		$nonce = sanitize_text_field( wp_unslash( $_REQUEST['nonce'] ) );
+	}
+
+	if ( ! wp_verify_nonce( $nonce, 'pmprogroupacct_checkout_ajax' ) ) {
+		wp_send_json_error(
+			array(
+				'message' => __( 'Invalid checkout security token.', 'pmpro-group-accounts' ),
+			),
+			403
+		);
+	}
+}
+
+function pmprogroupacct_ajax_render_payment_plan() {
+	pmprogroupacct_verify_checkout_ajax_request();
+	pmprogroupacct_merge_checkout_ajax_request();
 
 	$level_id = isset( $_REQUEST['level'] ) ? (int) $_REQUEST['level'] : 0;
 	if ( ! $level_id && function_exists( 'pmpro_getLevelAtCheckout' ) ) {
@@ -444,6 +469,7 @@ function pmprogroupacct_checkout_pricing_data() {
 			'paymentPlanUrl'=> admin_url( 'admin-ajax.php?action=pmprogroupacct_render_payment_plan' ),
 			'childFieldsUrl'=> admin_url( 'admin-ajax.php?action=pmprogroupacct_render_child_fields' ),
 			'ajaxNonce'     => wp_create_nonce( 'pmprogroupacct_checkout_ajax' ),
+			'levelId'       => (int) $level->id,
 			'paymentSummaryTitle' => __( 'Payment Summary', 'pmpro-group-accounts' ),
 			'insertAfterGroup'  => pmprogroupacct_get_checkout_players_insert_after_group(),
 		)
@@ -452,13 +478,8 @@ function pmprogroupacct_checkout_pricing_data() {
 add_action( 'wp_enqueue_scripts', 'pmprogroupacct_checkout_pricing_data', 20 );
 
 function pmprogroupacct_ajax_render_child_fields() {
-	check_ajax_referer( 'pmprogroupacct_checkout_ajax', 'nonce' );
-
-	foreach ( $_POST as $key => $value ) {
-		if ( is_scalar( $value ) ) {
-			$_REQUEST[ $key ] = wp_unslash( $value );
-		}
-	}
+	pmprogroupacct_verify_checkout_ajax_request();
+	pmprogroupacct_merge_checkout_ajax_request();
 
 	if ( ! isset( $_REQUEST['index'] ) ) {
 		wp_send_json_error( null, 400 );
