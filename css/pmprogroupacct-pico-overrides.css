@@ -148,6 +148,20 @@
 	flex-shrink: 0;
 }
 
+.pico.pmpro-pico-scope .pmprogroupacct-label-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.35rem;
+	margin-bottom: 0;
+}
+
+.pico.pmpro-pico-scope .pmprogroupacct-label-row .pmpro_form_label {
+	display: inline-block;
+	width: auto;
+	margin-bottom: 0;
+}
+
 .pico.pmpro-pico-scope .pmprogroupacct-field-copy-link {
 	display: inline;
 	width: auto;

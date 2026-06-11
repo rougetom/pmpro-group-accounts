@@ -252,14 +252,24 @@
 }
 
 .pmprogroupacct-label-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.35rem;
 	margin-bottom: 0;
 	line-height: 1.4;
 }
 
 .pmprogroupacct-label-row .pmpro_form_label {
-	display: inline;
+	display: inline-block;
+	width: auto;
 	margin-bottom: 0;
-	margin-right: 0.35rem;
+	margin-right: 0;
+}
+
+.pmprogroupacct-label-row .pmprogroupacct-field-copy-link {
+	flex: 0 0 auto;
+	white-space: nowrap;
 }
 
 .pmprogroupacct-field-copy-link {
