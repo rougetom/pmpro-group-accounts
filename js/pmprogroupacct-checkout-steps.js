@@ -163,15 +163,102 @@
 			return;
 		}
 
+		if (field.type === 'radio' && typeof field.setCustomValidity === 'function') {
+			field.setCustomValidity(getStrings().requiredFieldMessage || 'Please fill out this field.');
+		}
+
 		if (typeof field.reportValidity === 'function') {
 			field.reportValidity();
 		} else {
 			field.focus();
 		}
 
+		if (field.type === 'radio' && typeof field.setCustomValidity === 'function') {
+			field.setCustomValidity('');
+		}
+
 		if (typeof field.scrollIntoView === 'function') {
 			field.scrollIntoView({ behavior: 'smooth', block: 'center' });
 		}
+	}
+
+	function ensureStepContent() {
+		var $form = $('#pmpro_form');
+
+		if (!$form.hasClass('pmprogroupacct-checkout-stepped')) {
+			return;
+		}
+
+		var $step1 = $('#pmprogroupacct_checkout_step_1');
+		var $step2 = $('#pmprogroupacct_checkout_step_2');
+		var $step3 = $('#pmprogroupacct_checkout_step_3');
+
+		populateStep1($step1);
+		populateStep2($step2);
+
+		getStep1UserFieldGroups().each(function () {
+			var $fieldset = $(this);
+
+			if (!$fieldset.closest('.pmprogroupacct-checkout-step').length) {
+				$step1.append($fieldset);
+			}
+		});
+
+		if (!$step2.find('#pmprogroupacct_parent_fields').length) {
+			appendIfPresent($step2, '#pmprogroupacct_parent_fields');
+		}
+
+		cleanupOrphanCheckoutContent($form, $step3);
+	}
+
+	function isPmproRequiredWrapper($wrapper) {
+		if (!$wrapper.length) {
+			return false;
+		}
+
+		if ($wrapper.hasClass('pmpro_form_field-required') || $wrapper.hasClass('pmpro_required')) {
+			return true;
+		}
+
+		var $label = $wrapper.find('> .pmpro_form_label, > label, > span.pmpro_form_label').first();
+
+		if ($label.find('abbr, .pmpro_asterisk, .pmpro-required, .required').length) {
+			return true;
+		}
+
+		return $wrapper.find('[required]').length > 0;
+	}
+
+	function isFieldRequired($field) {
+		var el = $field[0];
+
+		if (!el || el.disabled || el.type === 'hidden') {
+			return false;
+		}
+
+		if (el.required || $field.attr('aria-required') === 'true') {
+			return true;
+		}
+
+		return isPmproRequiredWrapper($field.closest('.pmpro_form_field, .pmprogroupacct-team-selector-field'));
+	}
+
+	function fieldHasValue($field, $step) {
+		var el = $field[0];
+
+		if (el.type === 'checkbox') {
+			return el.checked;
+		}
+
+		if (el.type === 'radio') {
+			if (!el.name) {
+				return true;
+			}
+
+			return getFieldsByName($step, el.name).filter(':checked').length > 0;
+		}
+
+		return $.trim($field.val()) !== '';
 	}
 
 	function validateRequiredRadioGroups($step) {
@@ -228,45 +315,70 @@
 	}
 
 	function validateStepFields($step) {
+		if (!$step.length) {
+			return true;
+		}
+
+		var wasHidden = $step.prop('hidden');
+		$step.prop('hidden', false);
+
 		if (!validateRequiredRadioGroups($step)) {
+			$step.prop('hidden', wasHidden);
 			return false;
 		}
 
 		if (!validateTeamSelectors($step)) {
+			$step.prop('hidden', wasHidden);
 			return false;
 		}
 
 		var valid = true;
 
-		$step.find('input, select, textarea').not(':disabled').each(function () {
+		$step.find('input, select, textarea').each(function () {
+			var $field = $(this);
+
+			if ($field.is(':disabled') || this.type === 'hidden') {
+				return;
+			}
+
 			if (this.type === 'radio') {
 				return;
 			}
 
-			if (this.type === 'checkbox' && !this.required) {
+			if (!isFieldRequired($field)) {
 				return;
 			}
 
-			if (typeof this.checkValidity === 'function') {
-				if (!this.checkValidity()) {
+			if (fieldHasValue($field, $step)) {
+				return;
+			}
+
+			reportInvalidField(this);
+			valid = false;
+			return false;
+		});
+
+		if (valid) {
+			$step.find('input, select, textarea').not(':disabled').each(function () {
+				if (this.type === 'radio' || this.type === 'hidden') {
+					return;
+				}
+
+				if (typeof this.checkValidity === 'function' && !this.checkValidity()) {
 					reportInvalidField(this);
 					valid = false;
 					return false;
 				}
-				return;
-			}
+			});
+		}
 
-			if (this.required && $.trim($(this).val()) === '') {
-				reportInvalidField(this);
-				valid = false;
-				return false;
-			}
-		});
-
+		$step.prop('hidden', wasHidden);
 		return valid;
 	}
 
 	function validateCurrentStep() {
+		ensureStepContent();
+
 		var $step = $('#pmprogroupacct_checkout_step_' + currentStep);
 
 		if (!$step.length) {
@@ -277,6 +389,8 @@
 	}
 
 	function validateAllSteps() {
+		ensureStepContent();
+
 		var $steps = $('.pmprogroupacct-checkout-step');
 		var hiddenStates = [];
 
@@ -351,7 +465,9 @@
 		updateStepUi();
 	}
 
-	$(document).on('click', '.pmprogroupacct-checkout-next', function () {
+	$(document).on('click', '.pmprogroupacct-checkout-next', function (e) {
+		e.preventDefault();
+
 		if (!validateCurrentStep()) {
 			return;
 		}

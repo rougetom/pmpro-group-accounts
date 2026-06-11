@@ -56,6 +56,7 @@ function pmprogroupacct_enqueue_checkout_steps_assets() {
 			'prevLabel'  => __( 'Previous', 'pmpro-group-accounts' ),
 			'nextLabel'  => __( 'Next', 'pmpro-group-accounts' ),
 			'stepOf'     => __( 'Step %1$s of %2$s', 'pmpro-group-accounts' ),
+			'requiredFieldMessage' => __( 'Please fill out this field.', 'pmpro-group-accounts' ),
 		)
 	);
 }

@@ -228,10 +228,11 @@ function pmprogroupacct_pmpro_checkout_boxes_parent() {
 								pmprogroupacct_get_player_count_options( $settings ),
 								$child_count,
 								array(
-									'id_prefix'   => 'pmprogroupacct_children_count',
+									'id_prefix'     => 'pmprogroupacct_children_count',
 									'wrapper_class' => 'radio-wrapper-20 pmprogroupacct-player-count-radios',
-									'input_class' => pmpro_get_element_class( 'pmpro_alter_price' ),
-									'size'        => 'large',
+									'input_class'   => pmpro_get_element_class( 'pmpro_alter_price' ),
+									'size'          => 'large',
+									'required'      => true,
 								)
 							);
 							?>
@@ -299,6 +300,18 @@ function pmprogroupacct_pmpro_registration_checks_parent( $continue_checkout ) {
 		$profile = pmprogroupacct_parse_child_profile_from_request( 'pmprogroupacct_children[' . $i . ']' );
 		if ( empty( $profile ) || empty( $profile['first_name'] ) || empty( $profile['last_name'] ) ) {
 			pmpro_setMessage( sprintf( esc_html__( 'Please complete all required details for player %d.', 'pmpro-group-accounts' ), $i + 1 ), 'pmpro_error' );
+			return false;
+		}
+		if ( empty( $profile['date_of_birth'] ) ) {
+			pmpro_setMessage( sprintf( esc_html__( 'Please enter a date of birth for player %d.', 'pmpro-group-accounts' ), $i + 1 ), 'pmpro_error' );
+			return false;
+		}
+		if ( empty( $profile['gender'] ) ) {
+			pmpro_setMessage( sprintf( esc_html__( 'Please select a gender for player %d.', 'pmpro-group-accounts' ), $i + 1 ), 'pmpro_error' );
+			return false;
+		}
+		if ( empty( $profile['emergency_phone'] ) ) {
+			pmpro_setMessage( sprintf( esc_html__( 'Please enter an emergency contact phone number for player %d.', 'pmpro-group-accounts' ), $i + 1 ), 'pmpro_error' );
 			return false;
 		}
 		if ( empty( $profile['team_post_id'] ) || ! pmprogroupacct_validate_team_post_id( $profile['team_post_id'] ) ) {
