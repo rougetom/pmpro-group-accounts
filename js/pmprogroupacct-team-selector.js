@@ -1,4 +1,6 @@
 (function ($) {
+	var eventNamespace = '.pmprogroupacctTeamSelector';
+
 	function populateSelect($select, options, placeholder) {
 		$select.empty();
 		$select.append($('<option>', { value: '', text: placeholder }));
@@ -7,21 +9,31 @@
 		});
 	}
 
+	function getStrings() {
+		return typeof pmprogroupacctTeamSelector !== 'undefined' ? pmprogroupacctTeamSelector : {};
+	}
+
 	function initSelector($selector) {
-		if ($selector.data('initialized')) {
+		if (
+			!$selector.length ||
+			$selector.data('initialized') ||
+			typeof pmprogroupacctTeamSelector === 'undefined'
+		) {
 			return;
 		}
 
+		var strings = getStrings();
+		var i18n = strings.i18n || {};
 		var $category = $selector.find('.pmprogroupacct-team-category');
 		var $level = $selector.find('.pmprogroupacct-team-level');
 		var $team = $selector.find('.pmprogroupacct-team-post');
 		var $teamPostId = $selector.find('.pmprogroupacct-team-post-id');
 
-		$category.on('change', function () {
+		$category.off(eventNamespace).on('change' + eventNamespace, function () {
 			var categoryId = $(this).val();
 			$teamPostId.val('');
-			populateSelect($level, [], pmprogroupacctTeamSelector.i18n.selectLevel);
-			populateSelect($team, [], pmprogroupacctTeamSelector.i18n.selectTeam);
+			populateSelect($level, [], i18n.selectLevel || 'Select level');
+			populateSelect($team, [], i18n.selectTeam || 'Select team');
 			$level.prop('disabled', true);
 			$team.prop('disabled', true);
 
@@ -29,57 +41,66 @@
 				return;
 			}
 
-			$.post(pmprogroupacctTeamSelector.ajaxUrl, {
+			$.post(strings.ajaxUrl, {
 				action: 'pmprogroupacct_get_team_levels',
-				nonce: pmprogroupacctTeamSelector.nonce,
+				nonce: strings.nonce,
 				category_id: categoryId
 			}).done(function (response) {
 				if (!response.success) {
 					return;
 				}
-				populateSelect($level, response.data.options, pmprogroupacctTeamSelector.i18n.selectLevel);
+				populateSelect($level, response.data.options, i18n.selectLevel || 'Select level');
 				$level.prop('disabled', false);
 			});
 		});
 
-		$level.on('change', function () {
+		$level.off(eventNamespace).on('change' + eventNamespace, function () {
 			var categoryId = $category.val();
 			var levelId = $(this).val();
 			$teamPostId.val('');
-			populateSelect($team, [], pmprogroupacctTeamSelector.i18n.selectTeam);
+			populateSelect($team, [], i18n.selectTeam || 'Select team');
 			$team.prop('disabled', true);
 
 			if (!categoryId || !levelId) {
 				return;
 			}
 
-			$.post(pmprogroupacctTeamSelector.ajaxUrl, {
+			$.post(strings.ajaxUrl, {
 				action: 'pmprogroupacct_get_teams',
-				nonce: pmprogroupacctTeamSelector.nonce,
+				nonce: strings.nonce,
 				category_id: categoryId,
 				level_id: levelId
 			}).done(function (response) {
 				if (!response.success) {
 					return;
 				}
-				populateSelect($team, response.data.options, pmprogroupacctTeamSelector.i18n.selectTeam);
+				populateSelect($team, response.data.options, i18n.selectTeam || 'Select team');
 				$team.prop('disabled', false);
 			});
 		});
 
-		$team.on('change', function () {
+		$team.off(eventNamespace).on('change' + eventNamespace, function () {
 			$teamPostId.val($(this).val());
 		});
 
 		$selector.data('initialized', true);
 	}
 
-	function initAllSelectors() {
-		$('.pmprogroupacct-team-selector').each(function () {
+	function initAllSelectors($root) {
+		var $scope = $root && $root.length ? $root : $(document);
+
+		$scope.find('.pmprogroupacct-team-selector').each(function () {
 			initSelector($(this));
 		});
 	}
 
-	$(document).ready(initAllSelectors);
-	$(document).on('pmprogroupacct_children_updated', initAllSelectors);
+	window.pmprogroupacctInitTeamSelectors = initAllSelectors;
+
+	$(document).ready(function () {
+		initAllSelectors();
+	});
+
+	$(document).on('pmprogroupacct_children_updated', function () {
+		initAllSelectors($('#pmprogroupacct_children_container'));
+	});
 })(jQuery);

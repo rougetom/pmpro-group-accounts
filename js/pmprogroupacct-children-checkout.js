@@ -374,7 +374,20 @@
 				$.post(
 					pmprogroupacctCheckout.childFieldsUrl,
 					getCheckoutAjaxPayload({ index: index })
-				).always(function () {
+				).done(function (response) {
+					if (batchId !== refreshBatchId) {
+						return;
+					}
+
+					if (response.success && response.data && response.data.html) {
+						var $card = $(response.data.html);
+						$container.append($card);
+
+						if (typeof window.pmprogroupacctInitTeamSelectors === 'function') {
+							window.pmprogroupacctInitTeamSelectors($card);
+						}
+					}
+				}).always(function () {
 					if (batchId !== refreshBatchId) {
 						return;
 					}
@@ -382,14 +395,6 @@
 					pending--;
 					if (pending === 0) {
 						$(document).trigger('pmprogroupacct_children_updated');
-					}
-				}).done(function (response) {
-					if (batchId !== refreshBatchId) {
-						return;
-					}
-
-					if (response.success && response.data && response.data.html) {
-						$container.append(response.data.html);
 					}
 				});
 			})(i);
