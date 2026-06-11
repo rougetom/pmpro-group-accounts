@@ -158,13 +158,70 @@
 		});
 	}
 
+	function getRequiredMessage() {
+		return getStrings().requiredFieldMessage || 'Please fill out this field.';
+	}
+
+	function getFieldValidationWrapper($field) {
+		if (!$field.length) {
+			return $();
+		}
+
+		if ($field.is('[type="radio"]')) {
+			var $radioWrap = $field.closest('.radio-wrapper-20, [role="radiogroup"]');
+			if ($radioWrap.length) {
+				return $radioWrap;
+			}
+		}
+
+		return $field.closest('.pmpro_form_field, .pmprogroupacct-team-selector-field');
+	}
+
+	function clearFieldInvalid(field) {
+		if (!field) {
+			return;
+		}
+
+		var $field = $(field);
+
+		$field.removeAttr('aria-invalid');
+
+		if (typeof field.setCustomValidity === 'function') {
+			field.setCustomValidity('');
+		}
+
+		getFieldValidationWrapper($field).removeAttr('aria-invalid');
+	}
+
+	function clearStepInvalidState($step) {
+		$step.find('[aria-invalid]').removeAttr('aria-invalid');
+		$step.find('input, select, textarea').each(function () {
+			if (typeof this.setCustomValidity === 'function') {
+				this.setCustomValidity('');
+			}
+		});
+	}
+
+	function markFieldInvalid(field) {
+		if (!field) {
+			return;
+		}
+
+		var $field = $(field);
+
+		$field.attr('aria-invalid', 'true');
+		getFieldValidationWrapper($field).attr('aria-invalid', 'true');
+	}
+
 	function reportInvalidField(field) {
 		if (!field) {
 			return;
 		}
 
-		if (field.type === 'radio' && typeof field.setCustomValidity === 'function') {
-			field.setCustomValidity(getStrings().requiredFieldMessage || 'Please fill out this field.');
+		markFieldInvalid(field);
+
+		if (typeof field.setCustomValidity === 'function') {
+			field.setCustomValidity(getRequiredMessage());
 		}
 
 		if (typeof field.reportValidity === 'function') {
@@ -173,13 +230,76 @@
 			field.focus();
 		}
 
-		if (field.type === 'radio' && typeof field.setCustomValidity === 'function') {
-			field.setCustomValidity('');
-		}
-
 		if (typeof field.scrollIntoView === 'function') {
 			field.scrollIntoView({ behavior: 'smooth', block: 'center' });
 		}
+	}
+
+	function collectInvalidFields($step) {
+		var invalidFields = [];
+		var seenRadioGroups = {};
+
+		function addInvalid(field) {
+			if (!field || invalidFields.indexOf(field) !== -1) {
+				return;
+			}
+
+			invalidFields.push(field);
+		}
+
+		$step.find('input[type="radio"][required]').each(function () {
+			var name = this.name;
+
+			if (!name || seenRadioGroups[name]) {
+				return;
+			}
+
+			seenRadioGroups[name] = true;
+
+			if (!getFieldsByName($step, name).filter(':checked').length) {
+				addInvalid(this);
+			}
+		});
+
+		$step.find('.pmprogroupacct-team-selector').each(function () {
+			var $selector = $(this);
+			var teamId = $.trim($selector.find('.pmprogroupacct-team-post-id').val());
+
+			if (teamId) {
+				return;
+			}
+
+			var $category = $selector.find('.pmprogroupacct-team-category');
+			var $level = $selector.find('.pmprogroupacct-team-level');
+			var $team = $selector.find('.pmprogroupacct-team-post');
+
+			if (!$category.val()) {
+				addInvalid($category[0]);
+			} else if (!$level.val()) {
+				addInvalid($level[0]);
+			} else {
+				addInvalid($team[0]);
+			}
+		});
+
+		$step.find('input, select, textarea').each(function () {
+			var $field = $(this);
+
+			if ($field.is(':disabled') || this.type === 'hidden' || this.type === 'radio') {
+				return;
+			}
+
+			if (isFieldRequired($field) && !fieldHasValue($field, $step)) {
+				addInvalid(this);
+				return;
+			}
+
+			if (typeof this.checkValidity === 'function' && !this.checkValidity()) {
+				addInvalid(this);
+			}
+		});
+
+		return invalidFields;
 	}
 
 	function ensureStepContent() {
@@ -261,59 +381,6 @@
 		return $.trim($field.val()) !== '';
 	}
 
-	function validateRequiredRadioGroups($step) {
-		var validated = {};
-		var valid = true;
-
-		$step.find('input[type="radio"][required]').each(function () {
-			var name = this.name;
-
-			if (!name || validated[name]) {
-				return;
-			}
-
-			validated[name] = true;
-
-			if (!getFieldsByName($step, name).filter(':checked').length) {
-				reportInvalidField(this);
-				valid = false;
-				return false;
-			}
-		});
-
-		return valid;
-	}
-
-	function validateTeamSelectors($step) {
-		var valid = true;
-
-		$step.find('.pmprogroupacct-team-selector').each(function () {
-			var $selector = $(this);
-			var teamId = $.trim($selector.find('.pmprogroupacct-team-post-id').val());
-
-			if (teamId) {
-				return;
-			}
-
-			var $category = $selector.find('.pmprogroupacct-team-category');
-			var $level = $selector.find('.pmprogroupacct-team-level');
-			var $team = $selector.find('.pmprogroupacct-team-post');
-
-			if (!$category.val()) {
-				reportInvalidField($category[0]);
-			} else if (!$level.val()) {
-				reportInvalidField($level[0]);
-			} else {
-				reportInvalidField($team[0]);
-			}
-
-			valid = false;
-			return false;
-		});
-
-		return valid;
-	}
-
 	function validateStepFields($step) {
 		if (!$step.length) {
 			return true;
@@ -321,59 +388,26 @@
 
 		var wasHidden = $step.prop('hidden');
 		$step.prop('hidden', false);
+		clearStepInvalidState($step);
 
-		if (!validateRequiredRadioGroups($step)) {
+		var invalidFields = collectInvalidFields($step);
+
+		if (!invalidFields.length) {
 			$step.prop('hidden', wasHidden);
-			return false;
+			return true;
 		}
 
-		if (!validateTeamSelectors($step)) {
-			$step.prop('hidden', wasHidden);
-			return false;
-		}
+		invalidFields.forEach(function (field) {
+			markFieldInvalid(field);
 
-		var valid = true;
-
-		$step.find('input, select, textarea').each(function () {
-			var $field = $(this);
-
-			if ($field.is(':disabled') || this.type === 'hidden') {
-				return;
+			if (typeof field.setCustomValidity === 'function') {
+				field.setCustomValidity(getRequiredMessage());
 			}
-
-			if (this.type === 'radio') {
-				return;
-			}
-
-			if (!isFieldRequired($field)) {
-				return;
-			}
-
-			if (fieldHasValue($field, $step)) {
-				return;
-			}
-
-			reportInvalidField(this);
-			valid = false;
-			return false;
 		});
 
-		if (valid) {
-			$step.find('input, select, textarea').not(':disabled').each(function () {
-				if (this.type === 'radio' || this.type === 'hidden') {
-					return;
-				}
-
-				if (typeof this.checkValidity === 'function' && !this.checkValidity()) {
-					reportInvalidField(this);
-					valid = false;
-					return false;
-				}
-			});
-		}
-
+		reportInvalidField(invalidFields[0]);
 		$step.prop('hidden', wasHidden);
-		return valid;
+		return false;
 	}
 
 	function validateCurrentStep() {
@@ -482,6 +516,20 @@
 	$(document).on('submit', '#pmpro_form.pmprogroupacct-checkout-stepped', function (e) {
 		if (!validateAllSteps()) {
 			e.preventDefault();
+		}
+	});
+
+	$(document).on('input change', '#pmpro_form.pmprogroupacct-checkout-stepped input, #pmpro_form.pmprogroupacct-checkout-stepped select, #pmpro_form.pmprogroupacct-checkout-stepped textarea', function () {
+		var field = this;
+
+		clearFieldInvalid(field);
+
+		if (field.type === 'radio' && field.name) {
+			$('#pmpro_form.pmprogroupacct-checkout-stepped input[type="radio"]').filter(function () {
+				return this.name === field.name;
+			}).each(function () {
+				clearFieldInvalid(this);
+			});
 		}
 	});
 
