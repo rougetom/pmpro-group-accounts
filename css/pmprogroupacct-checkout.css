@@ -252,7 +252,7 @@
 }
 
 .pmprogroupacct-label-row {
-	margin-bottom: 0.35rem;
+	margin-bottom: 0;
 	line-height: 1.4;
 }
 
@@ -264,7 +264,7 @@
 
 .pmprogroupacct-field-copy-link {
 	display: inline;
-	font-size: inherit;
+	font-size: 0.6rem;
 	font-weight: inherit;
 	line-height: inherit;
 	color: var(--pico-primary, #0172ad);
