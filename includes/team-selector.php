@@ -70,6 +70,7 @@ function pmprogroupacct_register_team_selector_assets() {
 				'selectCategory' => __( 'Select category', 'pmpro-group-accounts' ),
 				'selectLevel'    => __( 'Select level', 'pmpro-group-accounts' ),
 				'selectTeam'     => __( 'Select team', 'pmpro-group-accounts' ),
+				'loading'        => __( 'Loading...', 'pmpro-group-accounts' ),
 			),
 		)
 	);
@@ -111,33 +112,39 @@ function pmprogroupacct_render_team_selector( $field_prefix, $selected_team = 0 
 			</div>
 			<div class="pmprogroupacct-team-selector-field">
 				<label class="pmprogroupacct-team-selector-label"><?php echo esc_html( $level_tax ? $level_tax->labels->singular_name : __( 'Level', 'pmpro-group-accounts' ) ); ?></label>
-				<select class="pmprogroupacct-team-level" <?php disabled( empty( $selected['category_id'] ) ); ?> required>
-					<option value=""><?php esc_html_e( 'Select level', 'pmpro-group-accounts' ); ?></option>
-					<?php
-					if ( ! empty( $selected['category_id'] ) ) {
-						foreach ( pmprogroupacct_get_team_level_terms_for_category( $selected['category_id'] ) as $term ) {
-							?>
-							<option value="<?php echo esc_attr( $term->term_id ); ?>" <?php selected( $selected['level_id'], $term->term_id ); ?>><?php echo esc_html( $term->name ); ?></option>
-							<?php
+				<div class="pmprogroupacct-team-select-wrap">
+					<select class="pmprogroupacct-team-level" <?php disabled( empty( $selected['category_id'] ) ); ?> required>
+						<option value=""><?php esc_html_e( 'Select level', 'pmpro-group-accounts' ); ?></option>
+						<?php
+						if ( ! empty( $selected['category_id'] ) ) {
+							foreach ( pmprogroupacct_get_team_level_terms_for_category( $selected['category_id'] ) as $term ) {
+								?>
+								<option value="<?php echo esc_attr( $term->term_id ); ?>" <?php selected( $selected['level_id'], $term->term_id ); ?>><?php echo esc_html( $term->name ); ?></option>
+								<?php
+							}
 						}
-					}
-					?>
-				</select>
+						?>
+					</select>
+					<span class="pmprogroupacct-team-select-loading" hidden aria-hidden="true"><?php esc_html_e( 'Loading...', 'pmpro-group-accounts' ); ?></span>
+				</div>
 			</div>
 			<div class="pmprogroupacct-team-selector-field">
 				<label class="pmprogroupacct-team-selector-label"><?php echo esc_html( $team_label ? $team_label->labels->singular_name : __( 'Team', 'pmpro-group-accounts' ) ); ?></label>
-				<select class="pmprogroupacct-team-post" <?php disabled( empty( $selected['category_id'] ) || empty( $selected['level_id'] ) ); ?> required>
-					<option value=""><?php esc_html_e( 'Select team', 'pmpro-group-accounts' ); ?></option>
-					<?php
-					if ( ! empty( $selected['category_id'] ) && ! empty( $selected['level_id'] ) ) {
-						foreach ( pmprogroupacct_get_teams_for_category_and_level( $selected['category_id'], $selected['level_id'] ) as $team_post ) {
-							?>
-							<option value="<?php echo esc_attr( $team_post->ID ); ?>" <?php selected( $selected_team, $team_post->ID ); ?>><?php echo esc_html( $team_post->post_title ); ?></option>
-							<?php
+				<div class="pmprogroupacct-team-select-wrap">
+					<select class="pmprogroupacct-team-post" <?php disabled( empty( $selected['category_id'] ) || empty( $selected['level_id'] ) ); ?> required>
+						<option value=""><?php esc_html_e( 'Select team', 'pmpro-group-accounts' ); ?></option>
+						<?php
+						if ( ! empty( $selected['category_id'] ) && ! empty( $selected['level_id'] ) ) {
+							foreach ( pmprogroupacct_get_teams_for_category_and_level( $selected['category_id'], $selected['level_id'] ) as $team_post ) {
+								?>
+								<option value="<?php echo esc_attr( $team_post->ID ); ?>" <?php selected( $selected_team, $team_post->ID ); ?>><?php echo esc_html( $team_post->post_title ); ?></option>
+								<?php
+							}
 						}
-					}
-					?>
-				</select>
+						?>
+					</select>
+					<span class="pmprogroupacct-team-select-loading" hidden aria-hidden="true"><?php esc_html_e( 'Loading...', 'pmpro-group-accounts' ); ?></span>
+				</div>
 			</div>
 		</div>
 	</div>

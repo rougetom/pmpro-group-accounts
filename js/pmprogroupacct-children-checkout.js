@@ -1,5 +1,5 @@
 (function ($) {
-	var refreshRequest = null;
+	var refreshBatchId = 0;
 	var refreshTimer = null;
 	var paymentPlanRequest = null;
 	var lastChildCount = null;
@@ -48,6 +48,82 @@
 		}
 
 		return count;
+	}
+
+	function parseQueryLikeData(data) {
+		var parsed = {};
+
+		if (!data) {
+			return parsed;
+		}
+
+		if (typeof data === 'object' && !Array.isArray(data)) {
+			return $.extend({}, data);
+		}
+
+		if (typeof data !== 'string') {
+			return parsed;
+		}
+
+		$.each(data.split('&'), function (_, pair) {
+			if (!pair) {
+				return;
+			}
+
+			var equalsIndex = pair.indexOf('=');
+			var key = decodeURIComponent(equalsIndex === -1 ? pair : pair.slice(0, equalsIndex));
+			var value = decodeURIComponent(equalsIndex === -1 ? '' : pair.slice(equalsIndex + 1));
+
+			if (key) {
+				parsed[key] = value;
+			}
+		});
+
+		return parsed;
+	}
+
+	function getCheckoutLevelId() {
+		var $level = $('#pmpro_form input[name="level"]').first();
+
+		if ($level.length) {
+			return $level.val();
+		}
+
+		if (typeof pmprogroupacctCheckout !== 'undefined' && pmprogroupacctCheckout.levelId) {
+			return pmprogroupacctCheckout.levelId;
+		}
+
+		return '';
+	}
+
+	function getCheckoutAjaxPayload(extra) {
+		var payload = parseQueryLikeData(
+			typeof pmpro_getCheckoutFormDataForCheckoutLevels === 'function'
+				? pmpro_getCheckoutFormDataForCheckoutLevels()
+				: null
+		);
+
+		payload.pmprogroupacct_children_count = getChildCount();
+
+		if (!payload.level) {
+			payload.level = getCheckoutLevelId();
+		}
+
+		if (extra) {
+			$.extend(payload, extra);
+		}
+
+		if (typeof pmprogroupacctCheckout !== 'undefined' && pmprogroupacctCheckout.ajaxNonce) {
+			payload.pmprogroupacct_checkout_nonce = pmprogroupacctCheckout.ajaxNonce;
+		}
+
+		return payload;
+	}
+
+	function setSanitizedHtml($target, html) {
+		var $container = $('<div>').html(html);
+		$container.find('script').remove();
+		$target.empty().append($container.contents());
 	}
 
 	function updateAverage() {
@@ -145,6 +221,10 @@
 	}
 
 	function moveCheckoutSections() {
+		if ($('#pmpro_form').hasClass('pmprogroupacct-checkout-stepped')) {
+			return;
+		}
+
 		var $children = $('#pmprogroupacct_children_container');
 		if (!$children.length) {
 			return;
@@ -175,7 +255,6 @@
 	function updateCheckoutPricing() {
 		if (
 			typeof pmprogroupacctCheckout === 'undefined' ||
-			typeof pmpro_getCheckoutFormDataForCheckoutLevels !== 'function' ||
 			!pmprogroupacctCheckout.checkoutLevelUrl
 		) {
 			return;
@@ -184,25 +263,26 @@
 		$.ajax({
 			url: pmprogroupacctCheckout.checkoutLevelUrl,
 			dataType: 'json',
-			data: pmpro_getCheckoutFormDataForCheckoutLevels(),
+			data: getCheckoutAjaxPayload(),
 		}).done(function (data) {
 			if (!data) {
 				return;
 			}
 
 			if (data.level_cost_html) {
-				$('#pmpro_level_cost .pmpro_level_cost_text').html(data.level_cost_html);
+				setSanitizedHtml($('#pmpro_level_cost .pmpro_level_cost_text'), data.level_cost_html);
 			}
 
 			if (typeof data.level_expiration_html !== 'undefined') {
 				var $expiration = $('#pmpro_level_cost .pmpro_level_expiration_text');
 				if (data.level_expiration_html) {
 					if ($expiration.length) {
-						$expiration.html(data.level_expiration_html);
+						setSanitizedHtml($expiration, data.level_expiration_html);
 					} else {
 						$('#pmpro_level_cost').append(
-							$('<div>', { class: 'pmpro_level_expiration_text', html: data.level_expiration_html })
+							$('<div>', { class: 'pmpro_level_expiration_text' })
 						);
+						setSanitizedHtml($('#pmpro_level_cost .pmpro_level_expiration_text').last(), data.level_expiration_html);
 					}
 				} else {
 					$expiration.remove();
@@ -228,9 +308,7 @@
 
 		paymentPlanRequest = $.post(
 			pmprogroupacctCheckout.paymentPlanUrl,
-			typeof pmpro_getCheckoutFormDataForCheckoutLevels === 'function'
-				? pmpro_getCheckoutFormDataForCheckoutLevels()
-				: { pmprogroupacct_children_count: getChildCount() }
+			getCheckoutAjaxPayload()
 		).done(function (response) {
 			if (!response.success || !response.data || !response.data.html || !$.trim(response.data.html)) {
 				return;
@@ -246,10 +324,16 @@
 			var $target = getPaymentSummaryCardContent($wrapper);
 			$target.find('#pmprogroupacct_payment_plan_options, #pmprogroupacct_payment_plan_area').remove();
 			removeTopPaymentPlanSections();
-			$target.append(response.data.html);
+			var $planContainer = $('<div>');
+			setSanitizedHtml($planContainer, response.data.html);
+			$target.append($planContainer.contents());
 			moveCheckoutSections();
 			$(document).trigger('pmprogroupacct_payment_plan_updated');
 		});
+	}
+
+	function getChildFieldCards($container) {
+		return $container.children('.pmprogroupacct_child_fields');
 	}
 
 	function refreshChildFields(count) {
@@ -257,25 +341,61 @@
 			return;
 		}
 
-		if (refreshRequest && refreshRequest.readyState !== 4) {
-			refreshRequest.abort();
-		}
-
 		var $container = $('#pmprogroupacct_children_container');
-		$container.empty();
-
-		if (count <= 0) {
-			$(document).trigger('pmprogroupacct_children_updated');
+		if (!$container.length) {
 			return;
 		}
 
-		var pending = count;
-		for (var i = 0; i < count; i++) {
+		var batchId = ++refreshBatchId;
+		var $cards = getChildFieldCards($container);
+		var currentCount = $cards.length;
+		var changed = false;
+
+		if (currentCount > count) {
+			$cards.slice(count).remove();
+			changed = true;
+		}
+
+		if (count <= 0) {
+			if (changed) {
+				$(document).trigger('pmprogroupacct_children_updated');
+			}
+			return;
+		}
+
+		var startIndex = getChildFieldCards($container).length;
+		if (startIndex >= count) {
+			if (changed) {
+				$(document).trigger('pmprogroupacct_children_updated');
+			}
+			return;
+		}
+
+		var pending = count - startIndex;
+
+		for (var i = startIndex; i < count; i++) {
 			(function (index) {
-				refreshRequest = $.post(pmprogroupacctCheckout.childFieldsUrl, { index: index }).done(function (response) {
-					if (response.success && response.data.html) {
-						$container.append(response.data.html);
+				$.post(
+					pmprogroupacctCheckout.childFieldsUrl,
+					getCheckoutAjaxPayload({ index: index })
+				).done(function (response) {
+					if (batchId !== refreshBatchId) {
+						return;
 					}
+
+					if (response.success && response.data && response.data.html) {
+						var $card = $(response.data.html);
+						$container.append($card);
+
+						if (typeof window.pmprogroupacctInitTeamSelectors === 'function') {
+							window.pmprogroupacctInitTeamSelectors($card);
+						}
+					}
+				}).always(function () {
+					if (batchId !== refreshBatchId) {
+						return;
+					}
+
 					pending--;
 					if (pending === 0) {
 						$(document).trigger('pmprogroupacct_children_updated');

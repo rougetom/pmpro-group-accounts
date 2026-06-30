@@ -434,7 +434,7 @@ function pmprogroupacct_render_child_fields( $index, $profile = array(), $show_h
 			<div class="pmprogroupacct-field-row">
 				<div class="pmprogroupacct-field-col <?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field' ) ); ?>">
 					<label class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>" for="<?php echo esc_attr( $prefix ); ?>_date_of_birth"><?php esc_html_e( 'Date of Birth', 'pmpro-group-accounts' ); ?></label>
-					<input class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_input' ) ); ?>" type="date" id="<?php echo esc_attr( $prefix ); ?>_date_of_birth" name="<?php echo esc_attr( $prefix ); ?>[date_of_birth]" value="<?php echo esc_attr( $profile['date_of_birth'] ); ?>" />
+					<input class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_input' ) ); ?>" type="date" id="<?php echo esc_attr( $prefix ); ?>_date_of_birth" name="<?php echo esc_attr( $prefix ); ?>[date_of_birth]" value="<?php echo esc_attr( $profile['date_of_birth'] ); ?>" <?php echo $is_checkout ? 'required' : ''; ?> />
 				</div>
 				<div class="pmprogroupacct-field-col <?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_field' ) ); ?>">
 					<span class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_label' ) ); ?>"><?php esc_html_e( 'Gender', 'pmpro-group-accounts' ); ?></span>
@@ -445,8 +445,9 @@ function pmprogroupacct_render_child_fields( $index, $profile = array(), $show_h
 							pmprogroupacct_get_gender_options(),
 							$profile['gender'],
 							array(
-								'id_prefix' => $prefix . '_gender',
+								'id_prefix'     => $prefix . '_gender',
 								'wrapper_class' => 'radio-wrapper-20 pmprogroupacct-gender-radios',
+								'required'      => $is_checkout,
 							)
 						);
 						?>
@@ -465,7 +466,7 @@ function pmprogroupacct_render_child_fields( $index, $profile = array(), $show_h
 						?>
 					<?php endif; ?>
 				</div>
-				<input class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_input' ) ); ?>" type="tel" id="<?php echo esc_attr( $prefix ); ?>_emergency_phone" name="<?php echo esc_attr( $prefix ); ?>[emergency_phone]" value="<?php echo esc_attr( $profile['emergency_phone'] ); ?>" />
+				<input class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form_input' ) ); ?>" type="tel" id="<?php echo esc_attr( $prefix ); ?>_emergency_phone" name="<?php echo esc_attr( $prefix ); ?>[emergency_phone]" value="<?php echo esc_attr( $profile['emergency_phone'] ); ?>" <?php echo $is_checkout ? 'required' : ''; ?> />
 			</div>
 			<?php
 			if ( function_exists( 'pmprogroupacct_render_team_selector' ) ) {

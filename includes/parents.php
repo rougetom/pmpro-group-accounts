@@ -58,12 +58,39 @@ function pmprogroupacct_capture_payment_plan_end( $level ) {
 }
 add_action( 'pmpro_checkout_after_pricing_fields', 'pmprogroupacct_capture_payment_plan_end', 999, 1 );
 
-function pmprogroupacct_ajax_render_payment_plan() {
+function pmprogroupacct_merge_checkout_ajax_request() {
 	foreach ( $_POST as $key => $value ) {
 		if ( is_scalar( $value ) ) {
 			$_REQUEST[ $key ] = wp_unslash( $value );
 		}
 	}
+}
+
+/**
+ * Verify the checkout AJAX nonce and return a JSON error on failure.
+ */
+function pmprogroupacct_verify_checkout_ajax_request() {
+	$nonce = '';
+
+	if ( isset( $_REQUEST['pmprogroupacct_checkout_nonce'] ) ) {
+		$nonce = sanitize_text_field( wp_unslash( $_REQUEST['pmprogroupacct_checkout_nonce'] ) );
+	} elseif ( isset( $_REQUEST['nonce'] ) ) {
+		$nonce = sanitize_text_field( wp_unslash( $_REQUEST['nonce'] ) );
+	}
+
+	if ( ! wp_verify_nonce( $nonce, 'pmprogroupacct_checkout_ajax' ) ) {
+		wp_send_json_error(
+			array(
+				'message' => __( 'Invalid checkout security token.', 'pmpro-group-accounts' ),
+			),
+			403
+		);
+	}
+}
+
+function pmprogroupacct_ajax_render_payment_plan() {
+	pmprogroupacct_verify_checkout_ajax_request();
+	pmprogroupacct_merge_checkout_ajax_request();
 
 	$level_id = isset( $_REQUEST['level'] ) ? (int) $_REQUEST['level'] : 0;
 	if ( ! $level_id && function_exists( 'pmpro_getLevelAtCheckout' ) ) {
@@ -201,10 +228,11 @@ function pmprogroupacct_pmpro_checkout_boxes_parent() {
 								pmprogroupacct_get_player_count_options( $settings ),
 								$child_count,
 								array(
-									'id_prefix'   => 'pmprogroupacct_children_count',
+									'id_prefix'     => 'pmprogroupacct_children_count',
 									'wrapper_class' => 'radio-wrapper-20 pmprogroupacct-player-count-radios',
-									'input_class' => pmpro_get_element_class( 'pmpro_alter_price' ),
-									'size'        => 'large',
+									'input_class'   => pmpro_get_element_class( 'pmpro_alter_price' ),
+									'size'          => 'large',
+									'required'      => true,
 								)
 							);
 							?>
@@ -272,6 +300,18 @@ function pmprogroupacct_pmpro_registration_checks_parent( $continue_checkout ) {
 		$profile = pmprogroupacct_parse_child_profile_from_request( 'pmprogroupacct_children[' . $i . ']' );
 		if ( empty( $profile ) || empty( $profile['first_name'] ) || empty( $profile['last_name'] ) ) {
 			pmpro_setMessage( sprintf( esc_html__( 'Please complete all required details for player %d.', 'pmpro-group-accounts' ), $i + 1 ), 'pmpro_error' );
+			return false;
+		}
+		if ( empty( $profile['date_of_birth'] ) ) {
+			pmpro_setMessage( sprintf( esc_html__( 'Please enter a date of birth for player %d.', 'pmpro-group-accounts' ), $i + 1 ), 'pmpro_error' );
+			return false;
+		}
+		if ( empty( $profile['gender'] ) ) {
+			pmpro_setMessage( sprintf( esc_html__( 'Please select a gender for player %d.', 'pmpro-group-accounts' ), $i + 1 ), 'pmpro_error' );
+			return false;
+		}
+		if ( empty( $profile['emergency_phone'] ) ) {
+			pmpro_setMessage( sprintf( esc_html__( 'Please enter an emergency contact phone number for player %d.', 'pmpro-group-accounts' ), $i + 1 ), 'pmpro_error' );
 			return false;
 		}
 		if ( empty( $profile['team_post_id'] ) || ! pmprogroupacct_validate_team_post_id( $profile['team_post_id'] ) ) {
@@ -441,6 +481,8 @@ function pmprogroupacct_checkout_pricing_data() {
 			'checkoutLevelUrl'=> esc_url_raw( rest_url( 'pmpro/v1/checkout_level' ) ),
 			'paymentPlanUrl'=> admin_url( 'admin-ajax.php?action=pmprogroupacct_render_payment_plan' ),
 			'childFieldsUrl'=> admin_url( 'admin-ajax.php?action=pmprogroupacct_render_child_fields' ),
+			'ajaxNonce'     => wp_create_nonce( 'pmprogroupacct_checkout_ajax' ),
+			'levelId'       => (int) $level->id,
 			'paymentSummaryTitle' => __( 'Payment Summary', 'pmpro-group-accounts' ),
 			'insertAfterGroup'  => pmprogroupacct_get_checkout_players_insert_after_group(),
 		)
@@ -449,8 +491,21 @@ function pmprogroupacct_checkout_pricing_data() {
 add_action( 'wp_enqueue_scripts', 'pmprogroupacct_checkout_pricing_data', 20 );
 
 function pmprogroupacct_ajax_render_child_fields() {
+	pmprogroupacct_verify_checkout_ajax_request();
+	pmprogroupacct_merge_checkout_ajax_request();
+
 	if ( ! isset( $_REQUEST['index'] ) ) {
-		wp_die();
+		wp_send_json_error( null, 400 );
+	}
+
+	$level_id = isset( $_REQUEST['level'] ) ? (int) $_REQUEST['level'] : 0;
+	if ( ! $level_id && function_exists( 'pmpro_getLevelAtCheckout' ) ) {
+		$checkout = pmpro_getLevelAtCheckout();
+		$level_id = ! empty( $checkout->id ) ? (int) $checkout->id : 0;
+	}
+
+	if ( $level_id && ! pmprogroupacct_level_is_multi_child_parent( $level_id ) ) {
+		wp_send_json_error( null, 403 );
 	}
 
 	$index = intval( $_REQUEST['index'] );

@@ -20,7 +20,27 @@ function pmprogroupacct_wp_enqueue_scripts() {
 	}
 
 	wp_enqueue_script( 'pmprogroupacct-checkout', plugins_url( 'js/pmprogroupacct-checkout.js', PMPROGROUPACCT_BASE_FILE ), array( 'jquery' ), PMPROGROUPACCT_VERSION );
-	wp_enqueue_script( 'pmprogroupacct-children-checkout', plugins_url( 'js/pmprogroupacct-children-checkout.js', PMPROGROUPACCT_BASE_FILE ), array( 'jquery' ), PMPROGROUPACCT_VERSION );
+
+	$children_checkout_deps = array( 'jquery' );
+	if (
+		function_exists( 'pmprogroupacct_should_render_builtin_team_selector' ) &&
+		pmprogroupacct_should_render_builtin_team_selector() &&
+		function_exists( 'pmprogroupacct_is_multi_child_checkout' ) &&
+		pmprogroupacct_is_multi_child_checkout()
+	) {
+		wp_enqueue_script( 'pmprogroupacct-team-selector' );
+		wp_enqueue_style( 'pmprogroupacct-team-selector' );
+		$children_checkout_deps[] = 'pmprogroupacct-team-selector';
+	}
+
+	wp_enqueue_script(
+		'pmprogroupacct-children-checkout',
+		plugins_url( 'js/pmprogroupacct-children-checkout.js', PMPROGROUPACCT_BASE_FILE ),
+		$children_checkout_deps,
+		PMPROGROUPACCT_VERSION,
+		true
+	);
+
 	wp_enqueue_style( 'pmprogroupacct-checkout', plugins_url( 'css/pmprogroupacct-checkout.css', PMPROGROUPACCT_BASE_FILE ), array(), PMPROGROUPACCT_VERSION );
 }
 add_action( 'wp_enqueue_scripts', 'pmprogroupacct_wp_enqueue_scripts' );

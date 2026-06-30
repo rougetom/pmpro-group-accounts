@@ -147,3 +147,47 @@
 	margin-top: 0.15rem;
 	flex-shrink: 0;
 }
+
+.pico.pmpro-pico-scope .pmprogroupacct-label-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.35rem;
+	margin-bottom: 0;
+}
+
+.pico.pmpro-pico-scope .pmprogroupacct-label-row .pmpro_form_label {
+	display: inline-block;
+	width: auto;
+	margin-bottom: 0;
+}
+
+.pico.pmpro-pico-scope .pmprogroupacct-field-copy-link {
+	display: inline;
+	width: auto;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	background: none;
+	box-shadow: none;
+	font-size: 0.6rem;
+	font-weight: inherit;
+	line-height: inherit;
+	text-decoration: underline;
+	vertical-align: baseline;
+}
+
+.pico.pmpro-pico-scope .pmpro_form_input[aria-invalid="true"],
+.pico.pmpro-pico-scope input[aria-invalid="true"]:not([type="checkbox"]):not([type="radio"]),
+.pico.pmpro-pico-scope select[aria-invalid="true"],
+.pico.pmpro-pico-scope textarea[aria-invalid="true"],
+.pico.pmpro-pico-scope .pmprogroupacct-team-selector select[aria-invalid="true"] {
+	--pico-border-color: var(--pico-form-element-invalid-border-color);
+	border-color: var(--pico-form-element-invalid-border-color);
+}
+
+.pico.pmpro-pico-scope .radio-wrapper-20[aria-invalid="true"] label span,
+.pico.pmpro-pico-scope .radio-wrapper-20[aria-invalid="true"] label .name {
+	box-shadow: 0 0 0 0.0625em var(--pico-form-element-invalid-border-color);
+}
