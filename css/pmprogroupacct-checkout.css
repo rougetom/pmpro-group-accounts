@@ -294,6 +294,7 @@
 
 .pmprogroupacct-checkout-stepped #pmpro_form > .pmpro_form_submit,
 .pmprogroupacct-checkout-stepped #pmpro_form > #pmpro_message_bottom,
+.pmprogroupacct-checkout-stepped #pmpro_form > #pmpro_user_fields,
 .pmprogroupacct-checkout-stepped #pmpro_form > fieldset:not(.pmprogroupacct-checkout-steps fieldset) {
 	display: none;
 }

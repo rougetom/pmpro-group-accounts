@@ -1,6 +1,7 @@
 (function ($) {
 	var currentStep = 1;
 	var initialized = false;
+	var step1FieldsetIds = null;
 
 	function getStrings() {
 		return typeof pmprogroupacctCheckoutSteps !== 'undefined' ? pmprogroupacctCheckoutSteps : {};
@@ -15,7 +16,7 @@
 		return $('#pmpro_payment_information_fields');
 	}
 
-	function getStep1UserFieldGroups() {
+	function getStep1UserFieldGroupsByIndex() {
 		var $limit = getStepLimitElement();
 
 		return $('#pmpro_form fieldset[id^="pmpro_form_fieldset-"]').filter(function () {
@@ -29,6 +30,36 @@
 
 			return $(this).index() < $limit.index();
 		});
+	}
+
+	function captureStep1FieldsetIds() {
+		step1FieldsetIds = [];
+
+		getStep1UserFieldGroupsByIndex().each(function () {
+			if (this.id) {
+				step1FieldsetIds.push(this.id);
+			}
+		});
+	}
+
+	function escapeFieldsetId(id) {
+		if ($.escapeSelector) {
+			return $.escapeSelector(id);
+		}
+
+		return id.replace(/([ !"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, '\\$1');
+	}
+
+	function getStep1UserFieldGroups() {
+		if (!step1FieldsetIds || !step1FieldsetIds.length) {
+			return getStep1UserFieldGroupsByIndex();
+		}
+
+		var selector = step1FieldsetIds.map(function (id) {
+			return '#' + escapeFieldsetId(id);
+		}).join(',');
+
+		return $(selector);
 	}
 
 	function appendIfPresent($target, selector) {
@@ -93,6 +124,39 @@
 
 			$step3.append($element);
 		});
+	}
+
+	function recoverOrphanStepContent() {
+		if (!initialized) {
+			return;
+		}
+
+		var $form = $('#pmpro_form');
+		var $step1 = $('#pmprogroupacct_checkout_step_1');
+		var $step2 = $('#pmprogroupacct_checkout_step_2');
+
+		if (!$form.hasClass('pmprogroupacct-checkout-stepped') || !$step1.length || !$step2.length) {
+			return;
+		}
+
+		appendIfPresent($step1, '#pmpro_user_fields');
+
+		getStep1UserFieldGroups().each(function () {
+			var $fieldset = $(this);
+
+			if (!$fieldset.closest('#pmprogroupacct_checkout_step_1').length) {
+				$step1.append($fieldset);
+			}
+		});
+
+		appendIfPresent($step2, '#pmprogroupacct_parent_fields');
+		appendIfPresent($step2, '#pmprogroupacct_checkout_pricing_area');
+		appendIfPresent($step2, '#pmpro_billing_address_fields');
+		appendIfPresent($step2, '#pmpro_payment_information_fields');
+
+		if (!$step2.find('#pmpro_pricing_fields').length) {
+			appendIfPresent($step2, '#pmpro_pricing_fields');
+		}
 	}
 
 	function buildStepsMarkup() {
@@ -193,9 +257,9 @@
 		getFieldValidationWrapper($field).removeAttr('aria-invalid');
 	}
 
-	function clearStepInvalidState($step) {
-		$step.find('[aria-invalid]').removeAttr('aria-invalid');
-		$step.find('input, select, textarea').each(function () {
+	function clearValidationState($roots) {
+		$roots.find('[aria-invalid]').removeAttr('aria-invalid');
+		$roots.find('input, select, textarea').each(function () {
 			if (typeof this.setCustomValidity === 'function') {
 				this.setCustomValidity('');
 			}
@@ -235,7 +299,27 @@
 		}
 	}
 
-	function collectInvalidFields($step) {
+	function getStepValidationRoots(stepNumber) {
+		var $form = $('#pmpro_form');
+		var $step = $('#pmprogroupacct_checkout_step_' + stepNumber);
+		var $roots = $step;
+
+		if (stepNumber === 1) {
+			$roots = $roots
+				.add($form.children('#pmpro_user_fields'))
+				.add(getStep1UserFieldGroups().filter(function () {
+					return !$(this).closest('#pmprogroupacct_checkout_step_1').length;
+				}));
+		}
+
+		if (stepNumber === 2) {
+			$roots = $roots.add($form.children('#pmprogroupacct_parent_fields'));
+		}
+
+		return $roots;
+	}
+
+	function collectInvalidFields($roots) {
 		var invalidFields = [];
 		var seenRadioGroups = {};
 
@@ -247,7 +331,7 @@
 			invalidFields.push(field);
 		}
 
-		$step.find('input[type="radio"][required]').each(function () {
+		$roots.find('input[type="radio"][required]').each(function () {
 			var name = this.name;
 
 			if (!name || seenRadioGroups[name]) {
@@ -256,12 +340,12 @@
 
 			seenRadioGroups[name] = true;
 
-			if (!getFieldsByName($step, name).filter(':checked').length) {
+			if (!getFieldsByName($roots, name).filter(':checked').length) {
 				addInvalid(this);
 			}
 		});
 
-		$step.find('.pmprogroupacct-team-selector').each(function () {
+		$roots.find('.pmprogroupacct-team-selector').each(function () {
 			var $selector = $(this);
 			var teamId = $.trim($selector.find('.pmprogroupacct-team-post-id').val());
 
@@ -282,14 +366,14 @@
 			}
 		});
 
-		$step.find('input, select, textarea').each(function () {
+		$roots.find('input, select, textarea').each(function () {
 			var $field = $(this);
 
 			if ($field.is(':disabled') || this.type === 'hidden' || this.type === 'radio') {
 				return;
 			}
 
-			if (isFieldRequired($field) && !fieldHasValue($field, $step)) {
+			if (isFieldRequired($field) && !fieldHasValue($field, $roots)) {
 				addInvalid(this);
 				return;
 			}
@@ -300,35 +384,6 @@
 		});
 
 		return invalidFields;
-	}
-
-	function ensureStepContent() {
-		var $form = $('#pmpro_form');
-
-		if (!$form.hasClass('pmprogroupacct-checkout-stepped')) {
-			return;
-		}
-
-		var $step1 = $('#pmprogroupacct_checkout_step_1');
-		var $step2 = $('#pmprogroupacct_checkout_step_2');
-		var $step3 = $('#pmprogroupacct_checkout_step_3');
-
-		populateStep1($step1);
-		populateStep2($step2);
-
-		getStep1UserFieldGroups().each(function () {
-			var $fieldset = $(this);
-
-			if (!$fieldset.closest('.pmprogroupacct-checkout-step').length) {
-				$step1.append($fieldset);
-			}
-		});
-
-		if (!$step2.find('#pmprogroupacct_parent_fields').length) {
-			appendIfPresent($step2, '#pmprogroupacct_parent_fields');
-		}
-
-		cleanupOrphanCheckoutContent($form, $step3);
 	}
 
 	function isPmproRequiredWrapper($wrapper) {
@@ -363,7 +418,7 @@
 		return isPmproRequiredWrapper($field.closest('.pmpro_form_field, .pmprogroupacct-team-selector-field'));
 	}
 
-	function fieldHasValue($field, $step) {
+	function fieldHasValue($field, $roots) {
 		var el = $field[0];
 
 		if (el.type === 'checkbox') {
@@ -375,25 +430,44 @@
 				return true;
 			}
 
-			return getFieldsByName($step, el.name).filter(':checked').length > 0;
+			return getFieldsByName($roots, el.name).filter(':checked').length > 0;
 		}
 
 		return $.trim($field.val()) !== '';
 	}
 
-	function validateStepFields($step) {
+	function prepareStepForValidation($step) {
+		return {
+			hidden: $step.prop('hidden'),
+			isActive: $step.hasClass('is-active'),
+		};
+	}
+
+	function restoreStepAfterValidation($step, state) {
+		$step.prop('hidden', state.hidden);
+		$step.toggleClass('is-active', state.isActive);
+	}
+
+	function validateStepFields(stepNumber) {
+		var $step = $('#pmprogroupacct_checkout_step_' + stepNumber);
+
 		if (!$step.length) {
 			return true;
 		}
 
-		var wasHidden = $step.prop('hidden');
-		$step.prop('hidden', false);
-		clearStepInvalidState($step);
+		recoverOrphanStepContent();
 
-		var invalidFields = collectInvalidFields($step);
+		var $roots = getStepValidationRoots(stepNumber);
+		var visibilityState = prepareStepForValidation($step);
+
+		$step.prop('hidden', false);
+		$step.addClass('is-active');
+		clearValidationState($roots);
+
+		var invalidFields = collectInvalidFields($roots);
 
 		if (!invalidFields.length) {
-			$step.prop('hidden', wasHidden);
+			restoreStepAfterValidation($step, visibilityState);
 			return true;
 		}
 
@@ -406,40 +480,29 @@
 		});
 
 		reportInvalidField(invalidFields[0]);
-		$step.prop('hidden', wasHidden);
+		restoreStepAfterValidation($step, visibilityState);
 		return false;
 	}
 
 	function validateCurrentStep() {
-		ensureStepContent();
-
-		var $step = $('#pmprogroupacct_checkout_step_' + currentStep);
-
-		if (!$step.length) {
-			return true;
-		}
-
-		return validateStepFields($step);
+		return validateStepFields(currentStep);
 	}
 
 	function validateAllSteps() {
-		ensureStepContent();
+		recoverOrphanStepContent();
 
 		var $steps = $('.pmprogroupacct-checkout-step');
-		var hiddenStates = [];
+		var visibilityStates = [];
 
 		$steps.each(function (index) {
-			hiddenStates[index] = $(this).prop('hidden');
-			$(this).prop('hidden', false);
+			visibilityStates[index] = prepareStepForValidation($(this));
 		});
 
 		var valid = true;
 		var failedStep = 1;
 
 		for (var step = 1; step <= 3; step++) {
-			var $step = $('#pmprogroupacct_checkout_step_' + step);
-
-			if (!validateStepFields($step)) {
+			if (!validateStepFields(step)) {
 				valid = false;
 				failedStep = step;
 				break;
@@ -447,7 +510,7 @@
 		}
 
 		$steps.each(function (index) {
-			$(this).prop('hidden', hiddenStates[index]);
+			restoreStepAfterValidation($(this), visibilityStates[index]);
 		});
 
 		if (!valid) {
@@ -473,6 +536,8 @@
 			return;
 		}
 
+		captureStep1FieldsetIds();
+
 		var $steps = buildStepsMarkup();
 		var $step1 = $steps.find('#pmprogroupacct_checkout_step_1');
 		var $step2 = $steps.find('#pmprogroupacct_checkout_step_2');
@@ -495,6 +560,7 @@
 		cleanupOrphanCheckoutContent($form, $step3);
 
 		$form.addClass('pmprogroupacct-checkout-stepped');
+		$form.attr('novalidate', 'novalidate');
 		initialized = true;
 		updateStepUi();
 	}
@@ -512,6 +578,18 @@
 	$(document).on('click', '.pmprogroupacct-checkout-prev', function () {
 		goToStep(currentStep - 1);
 	});
+
+	$(document).on(
+		'click',
+		'#pmpro_form.pmprogroupacct-checkout-stepped .pmpro_form_submit input[type="submit"], #pmpro_form.pmprogroupacct-checkout-stepped .pmpro_form_submit button[type="submit"]',
+		function (e) {
+			if (!validateAllSteps()) {
+				e.preventDefault();
+				e.stopImmediatePropagation();
+			}
+		},
+		true
+	);
 
 	$(document).on('submit', '#pmpro_form.pmprogroupacct-checkout-stepped', function (e) {
 		if (!validateAllSteps()) {

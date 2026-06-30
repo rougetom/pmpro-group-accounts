@@ -221,6 +221,10 @@
 	}
 
 	function moveCheckoutSections() {
+		if ($('#pmpro_form').hasClass('pmprogroupacct-checkout-stepped')) {
+			return;
+		}
+
 		var $children = $('#pmprogroupacct_children_container');
 		if (!$children.length) {
 			return;
