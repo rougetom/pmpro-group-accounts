@@ -215,7 +215,8 @@ function pmprogroupacct_pmpro_checkout_boxes_parent() {
 				<div id="pmprogroupacct_children_container" class="<?php echo esc_attr( pmpro_get_element_class( 'pmprogroupacct_children_container' ) ); ?>">
 					<?php
 					for ( $i = 0; $i < $child_count; $i++ ) {
-						pmprogroupacct_render_child_fields( $i );
+						$profile = pmprogroupacct_parse_child_profile_from_request( 'pmprogroupacct_children[' . $i . ']' );
+						pmprogroupacct_render_child_fields( $i, is_array( $profile ) ? $profile : array() );
 					}
 					?>
 				</div>
@@ -454,8 +455,15 @@ function pmprogroupacct_ajax_render_child_fields() {
 	}
 
 	$index = intval( $_REQUEST['index'] );
+
+	if ( isset( $_REQUEST['pmprogroupacct_children'] ) && is_array( $_REQUEST['pmprogroupacct_children'] ) ) {
+		$_REQUEST['pmprogroupacct_children'] = wp_unslash( $_REQUEST['pmprogroupacct_children'] );
+	}
+
+	$profile = pmprogroupacct_parse_child_profile_from_request( 'pmprogroupacct_children[' . $index . ']' );
+
 	ob_start();
-	pmprogroupacct_render_child_fields( $index );
+	pmprogroupacct_render_child_fields( $index, is_array( $profile ) ? $profile : array() );
 	wp_send_json_success( array( 'html' => ob_get_clean() ) );
 }
 add_action( 'wp_ajax_pmprogroupacct_render_child_fields', 'pmprogroupacct_ajax_render_child_fields' );

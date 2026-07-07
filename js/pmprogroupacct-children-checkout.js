@@ -145,6 +145,10 @@
 	}
 
 	function moveCheckoutSections() {
+		if ($('#pmpro_form').hasClass('pmprogroupacct-checkout-stepped')) {
+			return;
+		}
+
 		var $children = $('#pmprogroupacct_children_container');
 		if (!$children.length) {
 			return;
@@ -252,6 +256,57 @@
 		});
 	}
 
+	function setNestedProfileValue(profile, keyPath, value) {
+		var keys = keyPath.replace(/^\[|\]$/g, '').split('][');
+		var current = profile;
+		var i;
+
+		for (i = 0; i < keys.length - 1; i++) {
+			if (!current[keys[i]] || typeof current[keys[i]] !== 'object') {
+				current[keys[i]] = {};
+			}
+			current = current[keys[i]];
+		}
+
+		current[keys[keys.length - 1]] = value;
+	}
+
+	function snapshotChildProfiles() {
+		var profiles = {};
+
+		$('#pmprogroupacct_children_container :input[name^="pmprogroupacct_children["]').each(function () {
+			var name = this.name;
+			var match = name.match(/^pmprogroupacct_children\[(\d+)\]((?:\[[^\]]+\])+)$/);
+
+			if (!match) {
+				return;
+			}
+
+			var index = match[1];
+			var keyPath = match[2];
+
+			if (!profiles[index]) {
+				profiles[index] = {};
+			}
+
+			if (this.type === 'radio') {
+				if (this.checked) {
+					setNestedProfileValue(profiles[index], keyPath, this.value);
+				}
+				return;
+			}
+
+			if (this.type === 'checkbox') {
+				setNestedProfileValue(profiles[index], keyPath, this.checked ? (this.value || '1') : '');
+				return;
+			}
+
+			setNestedProfileValue(profiles[index], keyPath, $(this).val());
+		});
+
+		return profiles;
+	}
+
 	function refreshChildFields(count) {
 		if (typeof pmprogroupacctCheckout === 'undefined') {
 			return;
@@ -262,6 +317,8 @@
 		}
 
 		var $container = $('#pmprogroupacct_children_container');
+		var childProfiles = snapshotChildProfiles();
+
 		$container.empty();
 
 		if (count <= 0) {
@@ -272,7 +329,10 @@
 		var pending = count;
 		for (var i = 0; i < count; i++) {
 			(function (index) {
-				refreshRequest = $.post(pmprogroupacctCheckout.childFieldsUrl, { index: index }).done(function (response) {
+				refreshRequest = $.post(pmprogroupacctCheckout.childFieldsUrl, {
+					index: index,
+					pmprogroupacct_children: childProfiles,
+				}).done(function (response) {
 					if (response.success && response.data.html) {
 						$container.append(response.data.html);
 					}
