@@ -1,10 +1,24 @@
 (function ($) {
-	var currentStep = 1;
 	var initialized = false;
+	var retryCount = 0;
+	var maxRetries = 5;
 
 	function getStrings() {
 		return typeof pmprogroupacctCheckoutSteps !== 'undefined' ? pmprogroupacctCheckoutSteps : {};
 	}
+
+	function getInitialStep() {
+		var strings = getStrings();
+		var step = parseInt(strings.initialStep, 10);
+
+		if (isNaN(step) || step < 1 || step > 3) {
+			return 1;
+		}
+
+		return step;
+	}
+
+	var currentStep = getInitialStep();
 
 	function getStepLimitElement() {
 		var $billing = $('#pmpro_billing_address_fields');
@@ -128,6 +142,14 @@
 		return strings.step3Title || 'Confirm & Checkout';
 	}
 
+	function scrollToCheckoutMessage() {
+		var $message = $('#pmpro_message.pmpro_error, #pmpro_message_bottom.pmpro_error').first();
+
+		if ($message.length && $message[0].scrollIntoView) {
+			$message[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
+		}
+	}
+
 	function updateStepUi() {
 		var strings = getStrings();
 		var stepLabel = strings.stepOf || 'Step %1$s of %2$s';
@@ -172,17 +194,33 @@
 		updateStepUi();
 	}
 
+	function canInitCheckoutSteps() {
+		var $form = $('#pmpro_form');
+
+		return $form.length && $('#pmprogroupacct_parent_fields').length && !$form.hasClass('pmprogroupacct-checkout-stepped');
+	}
+
+	function scheduleInitRetry() {
+		if (initialized || retryCount >= maxRetries) {
+			return;
+		}
+
+		retryCount++;
+		window.setTimeout(initCheckoutSteps, 100 * retryCount);
+	}
+
 	function initCheckoutSteps() {
 		if (initialized) {
 			updateStepUi();
 			return;
 		}
 
-		var $form = $('#pmpro_form');
-		if (!$form.length || !$('#pmprogroupacct_parent_fields').length || $form.hasClass('pmprogroupacct-checkout-stepped')) {
+		if (!canInitCheckoutSteps()) {
+			scheduleInitRetry();
 			return;
 		}
 
+		var $form = $('#pmpro_form');
 		var $steps = buildStepsMarkup();
 		var $step1 = $steps.find('#pmprogroupacct_checkout_step_1');
 		var $step2 = $steps.find('#pmprogroupacct_checkout_step_2');
@@ -206,8 +244,14 @@
 
 		$form.addClass('pmprogroupacct-checkout-stepped');
 		initialized = true;
+		currentStep = getInitialStep();
 		updateStepUi();
+		scrollToCheckoutMessage();
 	}
+
+	$(document).on('pmprogroupacct_checkout_layout_ready', initCheckoutSteps);
+	$(document).on('pmprogroupacct_children_updated', initCheckoutSteps);
+	$(document).on('pmprogroupacct_payment_plan_updated', initCheckoutSteps);
 
 	$(document).on('click', '.pmprogroupacct-checkout-next', function () {
 		if (!validateCurrentStep()) {
@@ -222,7 +266,6 @@
 	});
 
 	$(document).ready(function () {
-		$(document).on('pmprogroupacct_checkout_layout_ready', initCheckoutSteps);
 		initCheckoutSteps();
 	});
 })(jQuery);

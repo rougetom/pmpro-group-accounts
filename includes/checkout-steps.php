@@ -19,11 +19,24 @@ function pmprogroupacct_should_use_checkout_steps() {
 		return false;
 	}
 
-	if ( ! empty( $_REQUEST['review'] ) || ! empty( $_REQUEST['confirm'] ) ) {
-		return false;
+	return (bool) apply_filters( 'pmprogroupacct_enable_checkout_steps', true );
+}
+
+/**
+ * Determine which checkout step should be active on page load.
+ *
+ * @return int
+ */
+function pmprogroupacct_get_checkout_initial_step() {
+	global $pmpro_msg, $pmpro_msgt;
+
+	$initial_step = 1;
+
+	if ( ! empty( $pmpro_msg ) && 'pmpro_error' === $pmpro_msgt && isset( $_REQUEST['submit-checkout'] ) ) {
+		$initial_step = 2;
 	}
 
-	return (bool) apply_filters( 'pmprogroupacct_enable_checkout_steps', true );
+	return max( 1, min( 3, (int) apply_filters( 'pmprogroupacct_checkout_initial_step', $initial_step ) ) );
 }
 
 /**
@@ -50,12 +63,13 @@ function pmprogroupacct_enqueue_checkout_steps_assets() {
 		'pmprogroupacct-checkout-steps',
 		'pmprogroupacctCheckoutSteps',
 		array(
-			'step1Title' => __( 'Your Details', 'pmpro-group-accounts' ),
-			'step2Title' => __( 'Players & Payment', 'pmpro-group-accounts' ),
-			'step3Title' => __( 'Confirm & Checkout', 'pmpro-group-accounts' ),
-			'prevLabel'  => __( 'Previous', 'pmpro-group-accounts' ),
-			'nextLabel'  => __( 'Next', 'pmpro-group-accounts' ),
-			'stepOf'     => __( 'Step %1$s of %2$s', 'pmpro-group-accounts' ),
+			'step1Title'  => __( 'Your Details', 'pmpro-group-accounts' ),
+			'step2Title'  => __( 'Players & Payment', 'pmpro-group-accounts' ),
+			'step3Title'  => __( 'Confirm & Checkout', 'pmpro-group-accounts' ),
+			'prevLabel'   => __( 'Previous', 'pmpro-group-accounts' ),
+			'nextLabel'   => __( 'Next', 'pmpro-group-accounts' ),
+			'stepOf'      => __( 'Step %1$s of %2$s', 'pmpro-group-accounts' ),
+			'initialStep' => pmprogroupacct_get_checkout_initial_step(),
 		)
 	);
 }
